@@ -13,11 +13,21 @@ ConstantSymbolEntry::ConstantSymbolEntry(Type *type, int value) : SymbolEntry(ty
     this->value = value;
 }
 
+int ConstantSymbolEntry::getValue() const
+{
+    return this->value;
+}
+
 std::string ConstantSymbolEntry::toStr()
 {
     std::ostringstream buffer;
     buffer << value;
     return buffer.str();
+}
+
+void IdentifierSymbolEntry::setValue(int value)
+{
+    this->value=value;
 }
 
 IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int scope) : SymbolEntry(type, SymbolEntry::VARIABLE), name(name)
@@ -30,6 +40,7 @@ std::string IdentifierSymbolEntry::toStr()
     return name;
 }
 
+//建立了一个新的符号表项，类型为temporary即临时变量，type为传入变量type
 TemporarySymbolEntry::TemporarySymbolEntry(Type *type, int label) : SymbolEntry(type, SymbolEntry::TEMPORARY)
 {
     this->label = label;
@@ -69,13 +80,31 @@ SymbolTable::SymbolTable(SymbolTable *prev)
 */
 SymbolEntry* SymbolTable::lookup(std::string name)
 {
-    // Todo
+    SymbolTable *curtable=this;
+    while(curtable!=nullptr)//由此往前遍历查询
+    {
+        if(curtable->symbolTable.count(name)==0&&curtable->prev!=nullptr)//当前的符号表里没有
+        {
+            //在前一个符号表里查询
+            curtable=curtable->prev;
+        }
+        else if(curtable->symbolTable.count(name)!=0)//在当前符号表中
+        {
+            return curtable->symbolTable[name];
+        }
+        else
+        {
+            //所有的符号表里都没有
+            break;
+        }
+    }
     return nullptr;
 }
 
 // install the entry into current symbol table.
 void SymbolTable::install(std::string name, SymbolEntry* entry)
 {
+    //使用map类型，即name作为key匹配entry的值
     symbolTable[name] = entry;
 }
 

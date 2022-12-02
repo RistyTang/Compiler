@@ -3,9 +3,9 @@
 
 #include <string>
 #include <map>
+#include "Type.h"
 
-class Type;
-
+//符号表项
 class SymbolEntry
 {
 private:
@@ -33,16 +33,18 @@ public:
 
     Compiler should create constant symbol entry for literal constant '1'.
 */
+//常数类型的符号表项
 class ConstantSymbolEntry : public SymbolEntry
 {
 private:
-    int value;
-
+    int value;//记录值
 public:
-    ConstantSymbolEntry(Type *type, int value);
+    ConstantSymbolEntry(Type *type, int value);//赋值
+    ConstantSymbolEntry(Type* type);
     virtual ~ConstantSymbolEntry() {};
-    int getValue() const {return value;};
+    int getValue() const;
     std::string toStr();
+    void setvalue(int value) {this->value=value;}
     // You can add any function you need here.
 };
 
@@ -73,16 +75,20 @@ class IdentifierSymbolEntry : public SymbolEntry
 {
 private:
     enum {GLOBAL, PARAM, LOCAL};
-    std::string name;
-    int scope;
+    std::string name;//名字
+    int scope;//作用域
     // You can add any field you need here.
-
+    int value;//int型变量的值
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
     virtual ~IdentifierSymbolEntry() {};
     std::string toStr();
     int getScope() const {return scope;};
     // You can add any function you need here.
+    int getValue() const {return value; }//返回value
+    void setValue(int value) ;
+    
+    
 };
 
 
@@ -104,6 +110,7 @@ public:
     | t1                 | 1     |
     | t2                 | 2     |
 */
+//这个class的作用是记录编译器产生的一些临时表达式。
 class TemporarySymbolEntry : public SymbolEntry
 {
 private:
@@ -133,7 +140,7 @@ public:
     static int getLabel() {return counter++;};
 };
 
-extern SymbolTable *identifiers;
-extern SymbolTable *globals;
+extern SymbolTable *identifiers;//是当前的作用域
+extern SymbolTable *globals;//它是最外面的作用域，全局变量
 
 #endif

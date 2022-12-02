@@ -23,3 +23,8 @@ std::string FunctionType::toStr()
     buffer << returnType->toStr() << "()";
     return buffer.str();
 }
+
+void FunctionType::setparamsType(std::vector<Type*> in)
+{
+    paramsType = in;
+}

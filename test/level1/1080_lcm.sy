@@ -16,11 +16,7 @@ int gcd(int m,int n)
 
     while(r!=0)
 
-    {
-        m=n;   
-        n=r;   
-        r=m%n;  
-        }
+    {m=n;   n=r;   r=m%n;  }
 
    return (a*b)/n;
 }
