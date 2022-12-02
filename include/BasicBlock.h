@@ -11,10 +11,12 @@ class BasicBlock
     typedef std::vector<BasicBlock *>::iterator bb_iterator;
 
 private:
+    //pred：前驱
+    //succ：继承（后辈）
     std::vector<BasicBlock *> pred, succ;
-    Instruction *head;
-    Function *parent;
-    int no;
+    Instruction *head;//当前基本块的第一条指令
+    Function *parent;//来自于哪个function
+    int no;//是该function的
 
 public:
     BasicBlock(Function *);

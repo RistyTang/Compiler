@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     yyparse();
     if(dump_ast)
         ast.output();
-    ast.typeCheck();
+    ast.typeCheck(nullptr);
     ast.genCode(&unit);
     if(dump_ir)
         unit.output();

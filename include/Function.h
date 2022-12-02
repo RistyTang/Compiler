@@ -17,10 +17,10 @@ class Function
     typedef std::vector<BasicBlock *>::reverse_iterator reverse_iterator;
 
 private:
-    std::vector<BasicBlock *> block_list;
-    SymbolEntry *sym_ptr;
-    BasicBlock *entry;
-    Unit *parent;
+    std::vector<BasicBlock *> block_list;//基本块列表，一个函数可能有多个基本块
+    SymbolEntry *sym_ptr;//来自于哪个符号表项
+    BasicBlock *entry;//第一个基本块
+    Unit *parent;//来自于哪个单元
 
 public:
     Function(Unit *, SymbolEntry *);

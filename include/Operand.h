@@ -14,8 +14,8 @@ class Operand
 typedef std::vector<Instruction *>::iterator use_iterator;
 
 private:
-    Instruction *def;                // The instruction where this operand is defined.
-    std::vector<Instruction *> uses; // Intructions that use this operand.
+    Instruction *def;                // 定义该操作数的指令
+    std::vector<Instruction *> uses; // 使用该操作数的指令。
     SymbolEntry *se;                 // The symbol entry of this operand.
 public:
     Operand(SymbolEntry*se) :se(se){def = nullptr;};

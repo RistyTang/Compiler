@@ -1,5 +1,6 @@
 #include "Unit.h"
 
+//插入一个函数默认是放在链表最后
 void Unit::insertFunc(Function *f)
 {
     func_list.push_back(f);

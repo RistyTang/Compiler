@@ -35,17 +35,19 @@ public:
 
     Compiler should create constant symbol entry for literal constant '1'.
 */
+//常数类型的符号表项
 class ConstantSymbolEntry : public SymbolEntry
 {
 private:
     int value;
-
 public:
     ConstantSymbolEntry(Type *type, int value);
     virtual ~ConstantSymbolEntry() {};
-    int getValue() const {return value;};
+    int getValue() const;
     std::string toStr();
     // You can add any function you need here.
+    ConstantSymbolEntry(Type* type);
+    void setvalue(int value) {this->value=value;}
 };
 
 
@@ -77,9 +79,9 @@ private:
     enum {GLOBAL, PARAM, LOCAL};
     std::string name;
     int scope;
-    Operand *addr;  // The address of the identifier.
+    Operand* addr;  // The address of the identifier.
     // You can add any field you need here.
-
+    int value;//int型变量的值
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
     virtual ~IdentifierSymbolEntry() {};
@@ -91,6 +93,9 @@ public:
     void setAddr(Operand *addr) {this->addr = addr;};
     Operand* getAddr() {return addr;};
     // You can add any function you need here.
+    int getValue() const {return value; }//返回value
+    void setValue(int value) ;
+    std::string getName() {return this->name;}
 };
 
 
@@ -131,7 +136,7 @@ private:
     std::map<std::string, SymbolEntry*> symbolTable;
     SymbolTable *prev;
     int level;
-    static int counter;
+    static int counter;//标签
 public:
     SymbolTable();
     SymbolTable(SymbolTable *prev);
@@ -142,7 +147,7 @@ public:
     static int getLabel() {return counter++;};
 };
 
-extern SymbolTable *identifiers;
-extern SymbolTable *globals;
+extern SymbolTable *identifiers;//是当前的作用域
+extern SymbolTable *globals;//它是最外面的作用域，全局变量
 
 #endif

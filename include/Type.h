@@ -2,7 +2,7 @@
 #define __TYPE_H__
 #include <vector>
 #include <string>
-
+                                           
 class Type
 {
 private:
@@ -16,6 +16,8 @@ public:
     bool isInt() const {return kind == INT;};
     bool isVoid() const {return kind == VOID;};
     bool isFunc() const {return kind == FUNC;};
+    //那这里要不要加isPtr?
+    bool isPtr() const {return kind==PTR;};
 };
 
 class IntType : public Type
@@ -37,13 +39,15 @@ public:
 class FunctionType : public Type
 {
 private:
-    Type *returnType;
-    std::vector<Type*> paramsType;
+    Type *returnType;//返回类型
+    std::vector<Type*> paramsType;//各个函数参数的类型
 public:
     FunctionType(Type* returnType, std::vector<Type*> paramsType) : 
     Type(Type::FUNC), returnType(returnType), paramsType(paramsType){};
-    Type* getRetType() {return returnType;};
     std::string toStr();
+    //设置参数类型
+    void setparamsType(std::vector<Type*>);
+    Type* getRetType() {return this->returnType;};
 };
 
 class PointerType : public Type

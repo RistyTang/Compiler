@@ -7,12 +7,18 @@ extern FILE* yyout;
 
 Instruction::Instruction(unsigned instType, BasicBlock *insert_bb)
 {
+    //该指令的前一条和后一条指令都指向自己
     prev = next = this;
+    //操作码暂时设定为-1
     opcode = -1;
+    //设置指令类型
     this->instType = instType;
+    //如果基本块不为空的话
     if (insert_bb != nullptr)
     {
+        //说明这个指令是来自于这个基本块，把它放进基本块中
         insert_bb->insertBack(this);
+        //设置当前指令的parent
         parent = insert_bb;
     }
 }
@@ -87,6 +93,14 @@ void BinaryInstruction::output() const
     case SUB:
         op = "sub";
         break;
+    case MUL:
+        op = "mul";
+        break;
+    case DIV:
+        op = "div";
+        break;
+    case MOD:
+        op = "mod";
     default:
         break;
     }
