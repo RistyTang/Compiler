@@ -10,4 +10,13 @@ int main()
     else
         min = b;
     return min;
+
+}
+int a(int b,int c)
+{
+
+}
+int b(int a,int c)
+{
+    return;
 }

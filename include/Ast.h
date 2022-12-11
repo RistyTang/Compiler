@@ -9,6 +9,7 @@
 #include "BasicBlock.h"
 #include "Instruction.h"
 #include "IRBuilder.h"
+#include "Type.h"
 
 class Node
 {
@@ -33,7 +34,7 @@ public:
     virtual void output(int level) = 0;
     //类型检查函数
     //在return时需要判别来自于哪个函数
-    virtual void typeCheck(Node* fromnode=nullptr) = 0;
+    virtual  void typeCheck(Node* fromnode=nullptr)= 0;
     //中间代码翻译
     virtual void genCode() = 0;
     std::vector<Instruction*>& trueList() {return true_list;}
@@ -47,7 +48,8 @@ class ExprNode : public Node
 {
 protected:
     SymbolEntry *symbolEntry;
-    Operand *dst;   //子树的结果
+    Operand *dst;   //操作数
+    Type * type;
 public:
     ExprNode(SymbolEntry *symbolEntry) : symbolEntry(symbolEntry){};
     Operand* getOperand() {return dst;};
@@ -57,6 +59,9 @@ public:
     void output(int level);//输出一下
     SymbolEntry *getentry(){return symbolEntry;}
     Type* getType() {return symbolEntry->getType();}
+    void genCode();
+    void typeCheck(Node* fromnode);
+    
 };
 
 class BinaryExpr : public ExprNode
@@ -105,19 +110,25 @@ private:
     ExprNode *expr;
 public:
     enum {SUB, TILDE};
-    OneOpExpr(SymbolEntry *se, int op, ExprNode* expr): ExprNode(se), op(op), expr(expr){};
+    OneOpExpr(SymbolEntry *se, int op, ExprNode* expr);
     void output(int level);
     int getValue();
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
+    int getOp() const { return op; };
+    void setType(Type* type) { this->type = type; }
 };
 
 //node转符号表项
 class Constant : public ExprNode
 {
 public:
-    Constant(SymbolEntry *se) : ExprNode(se){dst = new Operand(se);};
+    Constant(SymbolEntry *se) : ExprNode(se)
+    {
+        dst = new Operand(se);
+        type=TypeSystem::intType;//常数为int类型
+    };
     void output(int level);
     void typeCheck(Node* fromnode);
     void genCode();
@@ -132,19 +143,33 @@ class Id : public ExprNode
 public:
     Id(SymbolEntry *se) : ExprNode(se)
     {
+        type=se->getType();
         SymbolEntry *temp = new TemporarySymbolEntry(se->getType(), SymbolTable::getLabel());
         dst = new Operand(temp);
     };
     void output(int level);
     void typeCheck(Node* fromnode);
     void genCode();
+    int getValue();
+    Type* getType();
     SymbolEntry* getSymbolEntry() {return symbolEntry;}
 };
 
 //建立这个class的作用是为了把stmt类型转化为node
 //因此能够打印成节点
 class StmtNode : public Node
-{};
+{
+private:
+    int kind;
+
+protected:
+    enum { IF, IFELSE, WHILE, COMPOUND, RETURN };
+
+public:
+    StmtNode(int kind = -1) : kind(kind){};
+    bool isIf() const { return kind == IF; };
+    virtual void typeCheck(Node* fromnode = nullptr) = 0;
+};
 
 //复合语句
 class CompoundStmt : public StmtNode
@@ -179,6 +204,7 @@ public:
     void output(int level);
     void typeCheck(Node* fromnode);
     void genCode();
+    Id* getId() { return id; };
 };
 
 //写明常量声明语句块
@@ -192,7 +218,7 @@ public:
     void output(int level);
     //lab6需要新增对node中新增函数的实现
     void typeCheck(Node* fromnode) ;
-    void genCode() {}
+    void genCode();
 };
 
 //变量声明
@@ -205,60 +231,8 @@ public:
     VarDef(Id *id) : id(id){};
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
-};
-
-//常量s声明
-class ConstDefs : public StmtNode
-{
-private:
-    ConstDef* constdef;
-public:
-    ConstDefs(ConstDef* constdef) : constdef(constdef){};
-    void output(int level);
-    //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
-};
-
-//变量s声明
-class VarDefs : public StmtNode
-{
-private:
-    VarDef* vardef;
-public:
-    VarDefs(VarDef* vardef) : vardef(vardef){}
-    void output(int level);
-    //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
-};
-
-//常量声明语句
-class ConstDeclStmt : public StmtNode
-{
-private:
-    ConstDefs* constdefs;
-public:
-    ConstDeclStmt(ConstDefs* constdefs) : constdefs(constdefs){};
-    void output(int level);
-    //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
-};
-
-//变量声明语句
-class VarDeclStmt : public StmtNode
-{
-private:
-    VarDefs* vardefs;
-public:
-    VarDeclStmt(VarDefs* vardefs) : vardefs(vardefs){}
-    void output(int level);
-    //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //if语句
@@ -297,8 +271,8 @@ public:
     WhileStmt(ExprNode *cond,StmtNode *stmt) : cond(cond), stmt(stmt){};
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //do while语句块
@@ -339,8 +313,8 @@ public:
     ForStmt(ExprNode *cond,StmtNode *stmt) : cond(cond), stmt(stmt){};
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode() ;
 };
 
 class ReturnStmt : public StmtNode
@@ -376,8 +350,8 @@ public:
     Id* getId() {return id;}
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //函数定义参数列表
@@ -391,8 +365,8 @@ public:
     std::vector<Type*> getParamsType();
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //函数定义
@@ -421,8 +395,8 @@ public:
     void addNext(ExprNode* next);
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //函数调用节点
@@ -435,8 +409,8 @@ public:
     FuncCallNode(SymbolEntry *se, Id* id, FuncParamsNode* params) : ExprNode(se), funcId(id), params(params){};
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode);
+    void genCode();
 };
 
 //单独表达式语句也需要一个class
@@ -449,8 +423,8 @@ public:
     void addNext(ExprNode* next);
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode) ;
+    void genCode() ;
 };
 
 //空语句也建一个吧。
@@ -460,8 +434,8 @@ public:
     EmptyStmt(){};
     void output(int level);
     //lab6需要新增对node中新增函数的实现
-    void typeCheck(Node* fromnode) {}
-    void genCode() {}
+    void typeCheck(Node* fromnode) ;
+    void genCode() ;
 };
 
 class Ast

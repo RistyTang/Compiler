@@ -32,14 +32,26 @@ void Node::setnext(Node* node)
 //回填实现
 void Node::backPatch(std::vector<Instruction*> &list, BasicBlock*bb)
 {
+    //从当前指令列表依次遍历
     for(auto &inst:list)
     {
+        //如果是条件跳转指令
         if(inst->isCond())
         {
+            //将当前基本块的前驱设置为这条指令来自于的基本块
+            bb->addPred(dynamic_cast<CondBrInstruction*>(inst)->getParent());
+            //将当前基本块设置为此条件跳转指令所在基本块的后继
+            dynamic_cast<CondBrInstruction*>(inst)->getParent()->addSucc(bb);
+            //条件为真时的跳转
             dynamic_cast<CondBrInstruction*>(inst)->setTrueBranch(bb);
         }
+        //如果是无条件跳转指令
         else if(inst->isUncond())
         {    
+            //将当前基本块的前驱设置为这条指令来自于的基本块
+            bb->addPred(dynamic_cast<CondBrInstruction*>(inst)->getParent());
+            //将当前基本块设置为此条件跳转指令所在基本块的后继
+            dynamic_cast<CondBrInstruction*>(inst)->getParent()->addSucc(bb);
             dynamic_cast<UncondBrInstruction*>(inst)->setBranch(bb);
 
         }
@@ -51,6 +63,16 @@ std::vector<Instruction*> Node::merge(std::vector<Instruction*> &list1, std::vec
     std::vector<Instruction*> res(list1);
     res.insert(res.end(), list2.begin(), list2.end());
     return res;
+}
+
+void ExprNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void ExprNode::genCode()
+{
+    //无需增加代码
 }
 
 void ExprNode::output(int level) 
@@ -110,7 +132,6 @@ void BinaryExpr::genCode()
     {
         //属于CmpInstruction
         // Todo
-        /*
         expr1->genCode();
         expr2->genCode();
         Operand *src1 = expr1->getOperand();
@@ -139,9 +160,20 @@ void BinaryExpr::genCode()
             break;
         }
         new CmpInstruction(opcode, dst, src1, src2, bb);
+        //自行添加的正确错误列表合并
+        true_list = merge(expr1->trueList(), expr2->trueList());
+        false_list = merge(expr1->falseList(), expr2->falseList());
         //需要增加对之后指令插入位置的判别
-        BasicBlock *trueBB = new BasicBlock(func); 
-        */
+        BasicBlock *truebb = new BasicBlock(func); 
+        BasicBlock *falsebb = new BasicBlock(func); 
+        BasicBlock *tempbb = new BasicBlock(func); 
+        //为真和为假时对应不同的指令
+        Instruction* temp1 = new CondBrInstruction(truebb,tempbb,dst,bb);
+        Instruction* temp2 = new CondBrInstruction(falsebb,tempbb,dst,bb);
+       true_list.push_back(temp1);
+        false_list.push_back(temp2);
+        //设置为bool类型
+        dst -> getType() -> setKind(4);
     }
     else if(op >= ADD && op <= DIV)
     {
@@ -342,11 +374,32 @@ void BinaryExpr::typeCheck(Node* fromnode=nullptr)
                 type1 -> toStr().c_str(), type2 -> toStr().c_str());
         exit(EXIT_FAILURE);
     }
-    //否则为真
+    //否则类型为真
     fprintf(yyout, ";\tBinaryExpr TypeCheck CORRECT!\n");
     symbolEntry -> setType(type1);
     expr1 -> typeCheck();
     expr2 -> typeCheck();
+}
+
+OneOpExpr::OneOpExpr(SymbolEntry *se, int op, ExprNode* expr): ExprNode(se), op(op), expr(expr)
+{
+    
+}
+
+void OneOpExpr::typeCheck(Node* fromnode=nullptr)
+{
+    Type *type = expr -> getSymPtr() -> getType();
+    if(type -> isVoid()){
+        fprintf(stderr, "type can't be void");
+        exit(EXIT_FAILURE);
+    }
+    symbolEntry -> setType(type);
+    expr -> typeCheck();
+}
+
+void OneOpExpr::genCode()
+{
+    
 }
 
 int OneOpExpr::getValue()
@@ -416,6 +469,16 @@ void Id::typeCheck(Node* fromnode=nullptr)
 {
     // Todo
     //id无需类型检查吧
+}
+
+int Id::getValue()
+{
+
+}
+
+Type* Id::getType()
+{
+
 }
 
 void Id::output(int level)
@@ -528,6 +591,11 @@ void ConstDef::typeCheck(Node* fromnode=nullptr)
     //常量定义中没有需要检查的东西
 }
 
+void ConstDef::genCode()
+{
+
+}
+
 void VarDef::output(int level)
 {
     fprintf(yyout, "%*cVarDef\n", level, ' ');
@@ -539,29 +607,14 @@ void VarDef::output(int level)
     }
 }
 
-void ConstDefs::output(int level)
+void VarDef::typeCheck(Node* fromnode=nullptr)
 {
-    fprintf(yyout, "%*cConstDefs\n", level, ' ');
-    constdef->output(level+4);
+
 }
 
-
-void VarDefs::output(int level)
+void VarDef::genCode()
 {
-    fprintf(yyout, "%*cVarDefs\n", level, ' ');
-    vardef->output(level+4);
-}
 
-void ConstDeclStmt::output(int level)
-{
-    fprintf(yyout, "%*cConstDeclStmt\n", level, ' ');
-    constdefs->output(level+4);
-}
-
-void VarDeclStmt::output(int level)
-{
-    fprintf(yyout, "%*cVarDeclStmt\n", level, ' ');
-    vardefs->output(level+4);
 }
 
 void IfStmt::genCode()
@@ -634,6 +687,16 @@ void WhileStmt::output(int level)
     stmt->output(level + 4);
 }
 
+void WhileStmt::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void WhileStmt::genCode()
+{
+
+}
+
 //do while
 void DoWhileStmt::output(int level)
 {
@@ -656,6 +719,16 @@ void ForStmt::output(int level)
     fprintf(yyout, "%*cForStmt\n", level, ' ');
     cond->output(level + 4);
     stmt->output(level + 4);
+}
+
+void ForStmt::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void ForStmt::genCode()
+{
+
 }
 
 void ReturnStmt::output(int level)
@@ -735,9 +808,29 @@ void SingleFuncParamNode::output(int level)
     id->output(level+4);
 }
 
+void SingleFuncParamNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void SingleFuncParamNode::genCode()
+{
+
+}
+
 void FuncDefParamsNode::addNext(Id* next)
 {
     paramsList.push_back(next);
+}
+
+void FuncDefParamsNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void FuncDefParamsNode::genCode()
+{
+
 }
 
 std::vector<Type*> FuncDefParamsNode::getParamsType()
@@ -804,6 +897,16 @@ void FuncParamsNode::addNext(ExprNode* next)
     paramsList.push_back(next);
 }
 
+void FuncParamsNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void FuncParamsNode::genCode()
+{
+
+}
+
 void FuncParamsNode::output(int level)
 {
     fprintf(yyout, "%*cFuncParamsNode\n", level, ' ');
@@ -830,6 +933,16 @@ void FuncCallNode::output(int level)
     }
 }
 
+void FuncCallNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void FuncCallNode::genCode()
+{
+
+}
+
 void ExprStmtNode::addNext(ExprNode* next)
 {
     exprList.push_back(next);
@@ -844,9 +957,32 @@ void ExprStmtNode::output(int level)
     }
 }
 
+void ExprStmtNode::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void ExprStmtNode::genCode()
+{
+    for(auto expr : exprList)
+    {
+        expr->genCode();
+    }
+}
+
 void EmptyStmt::output(int level)
 {
     fprintf(yyout, "%*cEmptyStmt\n", level, ' ');
+}
+
+void EmptyStmt::typeCheck(Node* fromnode=nullptr)
+{
+
+}
+
+void EmptyStmt::genCode()
+{
+    //空白语句无需编写汇编代码
 }
 
 void Ast::typeCheck(Node* fromnode=nullptr)
@@ -868,19 +1004,3 @@ void Ast::output()
     if(root != nullptr)
         root->output(4);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

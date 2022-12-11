@@ -8,7 +8,8 @@ class Type
 private:
     int kind;
 protected:
-    enum {INT, VOID, FUNC, PTR};
+    //增加bool类型
+    enum {INT, VOID, FUNC, PTR, BOOL};
 public:
     Type(int kind) : kind(kind) {};
     virtual ~Type() {};
@@ -18,6 +19,11 @@ public:
     bool isFunc() const {return kind == FUNC;};
     //那这里要不要加isPtr?
     bool isPtr() const {return kind==PTR;};
+    bool isBool() const {return kind == BOOL;};
+    //设置类型
+    void setKind(int n) {this->kind=n;};
+    //获取类型
+    int getKind() const { return kind; };
 };
 
 class IntType : public Type
