@@ -5,147 +5,136 @@
     #include <cstring>
     #include <stack>
     extern Ast ast;
+
     int yylex();
-    int yyerror( char const * );
+    int yyerror(char const*);
+    ArrayType* arrayType;
+    int idx;
+    int* arrayValue;
+    std::stack<InitValueListExpr*> stk;
+    std::stack<StmtNode*> whileStk;
+    InitValueListExpr* top;
+    int leftCnt = 0;
+    int whileCnt = 0;
+    #include <iostream>
 }
 
 %code requires {
-    //文件要求包含头文件
     #include "Ast.h"
     #include "SymbolTable.h"
     #include "Type.h"
 }
 
 %union {
-    //union是只能存在一个
-    //也就是说yylval只能为以下中的一个
-    int itype;//记录得到的数字的内容
-    char* strtype;//用来存储ID名字
+    int itype;
+    char* strtype;
     StmtNode* stmttype;
     ExprNode* exprtype;
-    Type* type;//记录类型，调用Type.h中的class
-    SymbolEntry *se;//符号表项时
+    Type* type;
+    SymbolEntry* se;
 }
 
 %start Program
-%token <strtype> ID 
+%token <strtype> ID STRING
 %token <itype> INTEGER
-%token IF ELSE  
-%token INT VOID 
-%token EOL WHITE LINECOMMENT
-%token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE SEMICOLON
-%token TILDE MOD EXCLA COMMA SHA COLON
-%token GEQUAL LEQUAL EQUAL SUBONE ADDONE NOTEQUAL
-%token ANDAND OROR ASSIGNDIV ASSIGNMOD ASSIGNSTAR ASSIGNADD ASSIGNSUB
-%token ADD SUB DIV MUL OR AND GREATER LESS ASSIGN
-%token MLEFT MRIGHT
-%token RETURN
-%token DO WHILE SWITCH CASE DEFAULT CONST SIZEOF CONTINUE BREAK FOR SCANF PRINTF
-%nterm <stmttype> Stmts Stmt AssignStmt BlockStmt IfStmt ReturnStmt DeclStmt FuncDef 
-%nterm <stmttype> WhileStmt DoWhileStmt SwitchStmt ForStmt 
-%nterm <stmttype> VarDeclStmt VarDefs VarDef ConstDeclStmt ConstDefs ConstDef
-%nterm <stmttype> FuncFormalParams SingleFuncFormalParam FuncActualParams ExpStmt
-%nterm <exprtype> Exp Cond PrimaryExp LVal
-%nterm <exprtype> SeventhExp SixthExp FifthExp FourthExp ThirdExp SecondExp FirstExp 
-%nterm <type> Type 
+%token IF ELSE WHILE
+%token INT VOID
+%token LPAREN RPAREN LBRACE RBRACE SEMICOLON LBRACKET RBRACKET COMMA  
+%token ADD SUB MUL DIV MOD OR AND LESS LESSEQUAL GREATER GREATEREQUAL ASSIGN EQUAL NOTEQUAL NOT
+%token CONST
+%token RETURN CONTINUE BREAK
 
+%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefList VarDef ConstDef VarDefList FuncFParam FuncFParams MaybeFuncFParams BlankStmt
+%type<exprtype> Exp AddExp Cond LOrExp PrimaryExp LVal RelExp LAndExp MulExp ConstExp EqExp UnaryExp InitVal ConstInitVal InitValList ConstInitValList FuncArrayIndices FuncRParams ArrayIndices
+%type<type> Type
 
 %precedence THEN
 %precedence ELSE
 %%
 Program
     : Stmts {
-        //Stmt作为根节点
         ast.setRoot($1);
     }
     ;
 Stmts
     : Stmt {$$=$1;}
     | Stmts Stmt{
-        //两个及以上的语句
         $$ = new SeqNode($1, $2);
     }
     ;
 Stmt
-    : AssignStmt {$$=$1;}
+    : AssignStmt {
+        $$=$1;
+    }
+    | ExprStmt {$$ = $1;}
     | BlockStmt {$$=$1;}
-    | IfStmt {$$=$1;}
-    | ReturnStmt {$$=$1;}
-    | DeclStmt {$$=$1;}
-    | FuncDef {$$=$1;}
-    | DoWhileStmt {$$=$1;}
-    | WhileStmt {$$=$1;}
-    | SwitchStmt {$$=$1;}
-    | ForStmt {$$=$1;}
-    | ExpStmt SEMICOLON {
-        //不能直接用Exp SEMICOLON 会说类型不匹配
-        $$=$1;}
-    |   SEMICOLON {
-        //空语句
-        $$ = new EmptyStmt();}
+    | BlankStmt {$$ = $1;}
+    | IfStmt {$$ = $1;}
+    | WhileStmt {$$ = $1;}
+    | BreakStmt {
+        if(!whileCnt)
+            fprintf(stderr, "\'break\' statement not in while statement\n");
+        $$=$1;
+    }
+    | ContinueStmt {
+        if(!whileCnt)
+            fprintf(stderr, "\'continue\' statement not in while statement\n");
+        $$=$1;
+    }
+    | ReturnStmt {$$ = $1;}
+    | DeclStmt {$$ = $1;}
+    | FuncDef {$$ = $1;}
     ;
-//左值表达式
 LVal
     : ID {
-        SymbolEntry *se;
+        SymbolEntry* se;
         se = identifiers->lookup($1);
-        //没有找到当前的ID
         if(se == nullptr)
-        {
             fprintf(stderr, "identifier \"%s\" is undefined\n", (char*)$1);
-            delete [](char*)$1;
-            //违反这个断言，报错
-            assert(se != nullptr);
-        }
-        //新建一个ID
         $$ = new Id(se);
         delete []$1;
     }
-    ;
-//赋值语句
+    | ID ArrayIndices{
+        SymbolEntry* se;
+        se = identifiers->lookup($1);
+        if(se == nullptr)
+            fprintf(stderr, "identifier \"%s\" is undefined\n", (char*)$1);
+        $$ = new Id(se, $2);
+        delete []$1;
+    }
+    ; 
 AssignStmt
-    :
-    LVal ASSIGN Exp SEMICOLON {
+    : LVal ASSIGN Exp SEMICOLON {
         $$ = new AssignStmt($1, $3);
     }
     ;
-// 单个/多个表达式语句，主要用处是把stmt转化为expr
-ExpStmt
-    :   ExpStmt COMMA Exp {
-            ExprStmtNode* node = (ExprStmtNode*)$1;
-            node->addNext($3);
-            $$ = node;
-        }
-    |   Exp {
-            ExprStmtNode* node = new ExprStmtNode();
-            node->addNext($1);
-            $$ = node;
-        }
+ExprStmt
+    : Exp SEMICOLON {
+        $$ = new ExprStmt($1);
+    }
     ;
-//语句块
+BlankStmt
+    : SEMICOLON {
+        $$ = new BlankStmt();
+    }
+    ;
 BlockStmt
-    :   LBRACE 
-        {
-            //新建作用域
-            identifiers = new SymbolTable(identifiers);
-        } 
-        Stmts RBRACE 
-        {
-            //为什么是$3？——{}也算一个$
-            $$ = new CompoundStmt($3);
-            //}之后应该回到之前的作用域
-            SymbolTable *top = identifiers;
-            identifiers = identifiers->getPrev();
-            delete top;
-        }
-        | 
-        LBRACE RBRACE {
-        //增加一个为空情况，不加报错
+    : LBRACE {
+        identifiers = new SymbolTable(identifiers);
+    } 
+      Stmts RBRACE {
+        // midrule actions https://www.gnu.org/software/bison/manual/html_node/Using-Midrule-Actions.html
+        $$ = new CompoundStmt($3);
+
+        SymbolTable* top = identifiers;
+        identifiers = identifiers->getPrev();
+        delete top;
+    }
+    | LBRACE RBRACE {
+        // 这里这个用加嘛 不确定
         $$ = new CompoundStmt();
     }
     ;
-    ;
-//if else语句——已给出
 IfStmt
     : IF LPAREN Cond RPAREN Stmt %prec THEN {
         $$ = new IfStmt($3, $5);
@@ -154,258 +143,179 @@ IfStmt
         $$ = new IfElseStmt($3, $5, $7);
     }
     ;
-//return语句——已给出
+WhileStmt
+    : WHILE LPAREN Cond RPAREN {
+        whileCnt++;
+        WhileStmt *whileNode = new WhileStmt($3);
+        $<stmttype>$ = whileNode;
+        whileStk.push(whileNode);
+    }
+    Stmt {
+        StmtNode *whileNode = $<stmttype>5; 
+        ((WhileStmt*)whileNode)->setStmt($6);
+        $$=whileNode;
+        whileStk.pop();
+        whileCnt--;
+    }
+    ;
+BreakStmt
+    : BREAK SEMICOLON {
+        $$ = new BreakStmt(whileStk.top());
+    }
+    ;
+ContinueStmt
+    : CONTINUE SEMICOLON {
+        $$ = new ContinueStmt(whileStk.top());
+    }
+    ;
 ReturnStmt
-    :
-    RETURN Exp SEMICOLON{
+    : RETURN SEMICOLON {
+        $$ = new ReturnStmt();
+    }
+    | RETURN Exp SEMICOLON {
         $$ = new ReturnStmt($2);
     }
-    |
-    RETURN SEMICOLON
-    {
-        //新增一个return;语句
-        $$ = new ReturnStmt(nullptr);
-    }
     ;
-//新增do while语句——暂时用不到
-DoWhileStmt
-    :
-    DO LBRACE Stmt RBRACE WHILE LPAREN Cond RPAREN {
-        $$=new DoWhileStmt($3,$7);
-    }
-    ;
-//新增while语句
-WhileStmt
-    :
-    WHILE LPAREN Cond RPAREN Stmt{
-        //对应代码形如：while(条件){}或者while(条件);
-        //因此$5为stmt
-        $$=new WhileStmt($3,$5);
-    }
-    ;
-//新增switch语句——暂时用不到
-SwitchStmt
-    :
-    SWITCH LPAREN Cond RPAREN LBRACE Stmt RBRACE {
-        $$=new SwitchStmt($3,$6);
-    }
-    ;
-//新增for语句——暂时用不到
-ForStmt
-    :
-    FOR LPAREN Cond RPAREN LBRACE Stmt RBRACE {
-        $$=new ForStmt($3,$6);
-    }
-    ;
-//表达式，类别为exprnode
 Exp
     :
-    SeventhExp 
-    {
-        //从最低优先级开始
-        $$ = $1;
-    }
+    AddExp {$$ = $1;}
     ;
-//条件语句——已给出
 Cond
     :
-    SeventhExp {$$ = $1;}
+    LOrExp {$$ = $1;}
     ;
-//最低级 或 
-//按照c++十四级运算符优先级定义的话是第九级
-//但是再加就报错了也不知道为什么：）
-SeventhExp
-    :
-    SixthExp {$$ = $1;}
-    |
-    SeventhExp OROR SixthExp
-    {
-        //表达式都为临时符号表项
-        // ||
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::OROR, $1, $3);
+PrimaryExp
+    : LPAREN Exp RPAREN {
+        $$ = $2;
     }
-    ;
-//&&
-SixthExp
-    :
-    FifthExp {$$ = $1;}
-    |
-    SixthExp ANDAND FifthExp
-    {
-        //&&
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::ANDAND, $1, $3);
+    | LVal {
+        $$ = $1;
+    }
+    | STRING {
+        SymbolEntry* se;
+        se = globals->lookup(std::string($1));
+        // 这里如果str内容和变量名相同 怎么处理
+        if(se == nullptr){
+            Type* type = new StringType(strlen($1));
+            se = new ConstantSymbolEntry(type, std::string($1));
+            globals->install(std::string($1), se);
+        }
+        ExprNode* expr = new ExprNode(se);
+
+        $$ = expr;
+    }
+    | INTEGER {
+        SymbolEntry* se = new ConstantSymbolEntry(TypeSystem::intType, $1);
+        $$ = new Constant(se);
     }
     ;
-//大于 小于 大于等于 小于等于 等于 不等于
-FifthExp
-    :
-    FourthExp {$$ = $1;}
-    |
-    FifthExp LESS FourthExp
-    {   //<
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
+UnaryExp 
+    : PrimaryExp {$$ = $1;}
+    | ID LPAREN FuncRParams RPAREN {
+        SymbolEntry* se;
+        se = identifiers->lookup($1);
+        if(se == nullptr)
+            fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
+        $$ = new CallExpr(se, $3);
     }
-    |
-    FifthExp GREATER FourthExp
-    {
-        // >
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
+    | ID LPAREN RPAREN {
+        SymbolEntry* se;
+        se = identifiers->lookup($1);
+        if(se == nullptr)
+            fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
+        $$ = new CallExpr(se);
     }
-    |
-    FifthExp GEQUAL FourthExp
-    {
-        //>=
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::GEQUAL, $1, $3);
+    | ADD UnaryExp {$$ = $2;}
+    | SUB UnaryExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        $$ = new OneOpExpr(se, OneOpExpr::SUB, $2);
     }
-    |
-    FifthExp LEQUAL FourthExp
-    {
-        //<=
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::LEQUAL, $1, $3);
-    }
-    |
-    FifthExp EQUAL FourthExp
-    {
-        //==
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::EQUAL, $1, $3);
-    }
-    |
-    FifthExp NOTEQUAL FourthExp
-    {
-        //!=
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::NOTEQUAL, $1, $3);
+    | NOT UnaryExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new OneOpExpr(se, OneOpExpr::NOT, $2);
     }
     ;
-//左移 右移
-FourthExp
-    :
-    ThirdExp {$$ = $1;}
-    |
-    FourthExp MLEFT ThirdExp
-    {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::MLEFT, $1, $3);
-    }
-    |
-    FourthExp MRIGHT ThirdExp
-    {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::MRIGHT, $1, $3);
-    }
-    ;
-//加减
-ThirdExp
-    :
-    SecondExp {$$ = $1;}
-    |
-    ThirdExp ADD SecondExp
-    {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::ADD, $1, $3);
-    }
-    |
-    ThirdExp SUB SecondExp
-    {
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::SUB, $1, $3);
-    }
-    ;
-//乘除取模
-SecondExp
-    :
-    FirstExp {$$ = $1;}
-    |
-    SecondExp MUL FirstExp
-    {
-        //比加法高一级的应该是乘除法
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+MulExp
+    : UnaryExp {$$ = $1;}
+    | MulExp MUL UnaryExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::MUL, $1, $3);
     }
-    |
-    SecondExp DIV FirstExp
-    {
-        //除法
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+    | MulExp DIV UnaryExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::DIV, $1, $3);
     }
-    |
-    SecondExp MOD FirstExp
-    {
-        // %
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+    | MulExp MOD UnaryExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::MOD, $1, $3);
     }
     ;
-//单目运算符 正负非
-FirstExp
-    :
-    PrimaryExp {$$=$1;}
-    |
-    TILDE FirstExp
-    {
-        //这里一定要是FirstExp
-        //因为程序中有!!!!!!a这种东西……
-        // !
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new OneOpExpr(se, OneOpExpr::TILDE, $2);
+AddExp
+    : MulExp {$$ = $1;}
+    | AddExp ADD MulExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::ADD, $1, $3);
     }
-    | SUB FirstExp
-    {
-        //此处为负号
-        SymbolEntry *se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new OneOpExpr(se, OneOpExpr::SUB, $2);
-    }
-    | ADD FirstExp 
-    {
-        //此处意为“正”，对原数字没有影响，直接相等即可。
-        $$=$2;
+    | AddExp SUB MulExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::SUB, $1, $3);
     }
     ;
-//整数 左值表达式 函数值
-PrimaryExp
-    :
-    LVal {
+RelExp
+    : AddExp {
         $$ = $1;
     }
-    |
-    INTEGER 
-    {
-        //把这个整数的value一并传进去
-        SymbolEntry *se = new ConstantSymbolEntry(TypeSystem::intType, $1);
-        $$ = new Constant(se);
+    | RelExp LESS AddExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
     }
-    |
-    LPAREN Exp RPAREN {
-        //要跳回最低优先级
-        $$=$2;
+    | RelExp LESSEQUAL AddExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::LESSEQUAL, $1, $3);
     }
-    |   ID LPAREN FuncActualParams RPAREN {
-        //调用函数的优先级也属于此优先级
-        //是函数表达式 调用实参
-            SymbolEntry *se;
-            se = identifiers->lookup($1);
-            //要先判定是不是已经有的函数
-            //找不到的话说明是未出现过的ID，不可能是函数，报错
-            if(se == nullptr)
-            {
-                fprintf(stderr, "identifier \"%s\" is undefined\n", (char*)$1);
-                delete [](char*)$1;
-                assert(se != nullptr);
-            }
-            SymbolEntry *tmp = new TemporarySymbolEntry(se->getType(), SymbolTable::getLabel());
-            //这里属于函数调用，所以也打印一下
-            $$ = new FuncCallNode(tmp, new Id(se), (FuncParamsNode*)$3);
-        }
+    | RelExp GREATER AddExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
+    }
+    | RelExp GREATEREQUAL AddExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::GREATEREQUAL, $1, $3);
+    }
     ;
-//类型识别，之后需要新增float
+EqExp
+    : RelExp {$$ = $1;}
+    | EqExp EQUAL RelExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::EQUAL, $1, $3);
+    }
+    | EqExp NOTEQUAL RelExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::NOTEQUAL, $1, $3);
+    }
+    ;
+LAndExp
+    : EqExp {$$ = $1;}
+    | LAndExp AND EqExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::AND, $1, $3);
+    }
+    ;
+LOrExp
+    : LAndExp {$$ = $1;}
+    | LOrExp OR LAndExp {
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::OR, $1, $3);
+    }
+    ;
+ConstExp
+    : AddExp {$$ = $1;}
+    ;
+FuncRParams 
+    : Exp {$$ = $1;}
+    | FuncRParams COMMA Exp {
+        $$ = $1;
+        $$->setNext($3);
+    }
 Type
     : INT {
         $$ = TypeSystem::intType;
@@ -414,165 +324,445 @@ Type
         $$ = TypeSystem::voidType;
     }
     ;
-//修改，分为常量声明和变量声明
 DeclStmt
-    :
-    VarDeclStmt {$$=$1;}
-    |
-    ConstDeclStmt {$$=$1;}
+    : VarDeclStmt {$$ = $1;}
+    | ConstDeclStmt {$$ = $1;}
     ;
-//常量声明语句 const int a,b,c,d;
-ConstDeclStmt
-    :
-    CONST Type ConstDefs SEMICOLON {$$=$3; }
-    ;
-//多个常量共同定义
-ConstDefs
-    :
-    ConstDef {$$=$1;}
-    |
-    ConstDefs COMMA ConstDef {
-        //常量标识符列表
-        $$=$1;
-        $1->setnext($3);
-    }
-    ;
-//单个常量
-ConstDef
-    :
-    ID ASSIGN Exp {
-        //赋值语句
-        SymbolEntry *se;
-        //新建符号表项
-        se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
-        identifiers->install($1, se);
-        //设置值
-        ((IdentifierSymbolEntry*)se)->setValue($3->getValue());
-        $$ = new ConstDef(new Id(se));
-        delete []$1;
-    }
-    ;
-//变量声明语句
 VarDeclStmt
-    :
-    Type VarDefs SEMICOLON {
-        //变量声明语句
-        $$=$2;
+    : Type VarDefList SEMICOLON {$$ = $2;}
+    ;
+ConstDeclStmt
+    : CONST Type ConstDefList SEMICOLON {
+        $$ = $3;
     }
     ;
-//多个变量
-VarDefs
-    :
-    VarDef {
-        $$=$1;
-    }
-    |
-    VarDefs COMMA VarDef{
-        $$=$1;
-        $1->setnext($3);
-    }
+VarDefList
+    : VarDefList COMMA VarDef {
+        $$ = $1;
+        $1->setNext($3);
+    } 
+    | VarDef {$$ = $1;}
     ;
-//单个变量 原理与常量相同，但表项类别为identifier
+ConstDefList
+    : ConstDefList COMMA ConstDef {
+        $$ = $1;
+        $1->setNext($3);
+    }
+    | ConstDef {$$ = $1;}
+    ;
 VarDef
-    :
-    ID {
-        SymbolEntry *se;
+    : ID {
+        SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
-        identifiers->install($1, se);
-        $$ = new VarDef(new Id(se));
+        if(!identifiers->install($1, se))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        $$ = new DeclStmt(new Id(se));
         delete []$1;
     }
-    |
-    ID ASSIGN Exp {
-        //赋值语句
-        SymbolEntry *se;
+    //数组
+    | ID ArrayIndices {
+        SymbolEntry* se;
+        std::vector<int> vec;
+        ExprNode* temp = $2;
+        while(temp){
+            vec.push_back(temp->getValue());
+            temp = (ExprNode*)(temp->getNext());
+        }
+        Type *type = TypeSystem::intType;
+        Type* temp1;
+        while(!vec.empty()){
+            temp1 = new ArrayType(type, vec.back());
+            if(type->isArray())
+                ((ArrayType*)type)->setArrayType(temp1);
+            type = temp1;
+            vec.pop_back();
+        }
+        arrayType = (ArrayType*)type;
+        se = new IdentifierSymbolEntry(type, $1, identifiers->getLevel());
+        ((IdentifierSymbolEntry*)se)->setAllZero();
+        int *p = new int[type->getSize()];
+        ((IdentifierSymbolEntry*)se)->setArrayValue(p);
+        if(!identifiers->install($1, se))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        $$ = new DeclStmt(new Id(se));
+        delete []$1;
+    }
+    | ID ASSIGN InitVal {
+        SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
+        if(!identifiers->install($1, se))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        // 这里要不要存值不确定
+        ((IdentifierSymbolEntry*)se)->setValue($3->getValue());
+        $$ = new DeclStmt(new Id(se), $3);
+        delete []$1;
+    }
+    //数组类型赋初值
+    | ID ArrayIndices ASSIGN {
+        SymbolEntry* se;
+        std::vector<int> vec;
+        ExprNode* temp = $2;
+        while(temp){
+            vec.push_back(temp->getValue());
+            temp = (ExprNode*)(temp->getNext());
+        }
+        Type* type = TypeSystem::intType;
+        Type* temp1;
+        for(auto it = vec.rbegin(); it != vec.rend(); it++) {
+            temp1 = new ArrayType(type, *it);
+            if(type->isArray())
+                ((ArrayType*)type)->setArrayType(temp1);
+            type = temp1;
+        }
+        arrayType = (ArrayType*)type;
+        idx = 0;
+        std::stack<InitValueListExpr*>().swap(stk);
+        se = new IdentifierSymbolEntry(type, $1, identifiers->getLevel());
+        $<se>$ = se;
+        arrayValue = new int[arrayType->getSize()];
+    }
+      InitVal {
+        ((IdentifierSymbolEntry*)$<se>4)->setArrayValue(arrayValue);
+        if(((InitValueListExpr*)$5)->isEmpty())
+            ((IdentifierSymbolEntry*)$<se>4)->setAllZero();
+        if(!identifiers->install($1, $<se>4))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        $$ = new DeclStmt(new Id($<se>4), $5);
+        delete []$1;
+    }
+    ;
+ConstDef
+    : ID ASSIGN ConstInitVal {
+        SymbolEntry* se;
+        se = new IdentifierSymbolEntry(TypeSystem::constIntType, $1, identifiers->getLevel());
+        if(!identifiers->install($1, se))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
         identifiers->install($1, se);
         ((IdentifierSymbolEntry*)se)->setValue($3->getValue());
-        $$ = new VarDef(new Id(se));
+        $$ = new DeclStmt(new Id(se), $3);
         delete []$1;
     }
+    | ID ArrayIndices ASSIGN  {
+        SymbolEntry* se;
+        std::vector<int> vec;
+        ExprNode* temp = $2;
+        while(temp){
+            vec.push_back(temp->getValue());
+            temp = (ExprNode*)(temp->getNext());
+        }
+        Type* type = TypeSystem::constIntType;
+        Type* temp1;
+        for(auto it = vec.rbegin(); it != vec.rend(); it++) {
+            temp1 = new ArrayType(type, *it, true);
+            if(type->isArray())
+                ((ArrayType*)type)->setArrayType(temp1);
+            type = temp1;
+        }
+        arrayType = (ArrayType*)type;
+        idx = 0;
+        std::stack<InitValueListExpr*>().swap(stk);
+        se = new IdentifierSymbolEntry(type, $1, identifiers->getLevel());
+        $<se>$ = se;
+        arrayValue = new int[arrayType->getSize()];
+    }
+      ConstInitVal {
+        ((IdentifierSymbolEntry*)$<se>4)->setArrayValue(arrayValue);
+        if(!identifiers->install($1, $<se>4))
+            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        identifiers->install($1, $<se>4);
+        $$ = new DeclStmt(new Id($<se>4), $5);
+        delete []$1;
+    } 
     ;
-//函数定义
+ArrayIndices
+    : LBRACKET ConstExp RBRACKET {
+        $$ = $2;
+    }
+    | ArrayIndices LBRACKET ConstExp RBRACKET {
+        $$ = $1;
+        $1->setNext($3);
+    }
+    ;
+InitVal 
+    : Exp {
+        if(!$1->getType()->isInt()){
+            fprintf(stderr,
+                "cannot initialize a variable of type \'int\' with an rvalue "
+                "of type \'%s\'\n",
+                $1->getType()->toStr().c_str());
+        }
+        $$ = $1;
+        if(!stk.empty()){
+            arrayValue[idx++] = $1->getValue();
+            Type* arrTy = stk.top()->getSymbolEntry()->getType();
+            if(arrTy == TypeSystem::intType)
+                stk.top()->addExpr($1);
+            else
+                while(arrTy){
+                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType){
+                        arrTy = ((ArrayType*)arrTy)->getElementType();
+                        SymbolEntry* se = new ConstantSymbolEntry(arrTy);
+                        InitValueListExpr* list = new InitValueListExpr(se);
+                        stk.top()->addExpr(list);
+                        stk.push(list);
+                    }else{
+                        stk.top()->addExpr($1);
+                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                            arrTy = ((ArrayType*)arrTy)->getArrayType();
+                            stk.pop();
+                        }
+                        break;
+                    }
+                }
+        }         
+    }
+    | LBRACE RBRACE {
+        SymbolEntry* se;
+        ExprNode* list;
+        if(stk.empty()){
+            // 如果只用一个{}初始化数组，那么栈一定为空
+            // 此时也没必要再加入栈了
+            memset(arrayValue, 0, arrayType->getSize());
+            idx += arrayType->getSize() / TypeSystem::intType->getSize();
+            se = new ConstantSymbolEntry(arrayType);
+            list = new InitValueListExpr(se);
+        }else{
+            // 栈不空说明肯定不是只有{}
+            // 此时需要确定{}到底占了几个元素
+            Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
+            int len = type->getSize() / TypeSystem::intType->getSize();
+            memset(arrayValue + idx, 0, type->getSize());
+            idx += len;
+            se = new ConstantSymbolEntry(type);
+            list = new InitValueListExpr(se);
+            stk.top()->addExpr(list);
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                stk.pop();
+            }
+        }
+        $$ = list;
+    }
+    | LBRACE {
+        SymbolEntry* se;
+        if(!stk.empty())
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+        se = new ConstantSymbolEntry(arrayType);
+        if(arrayType->getElementType() != TypeSystem::intType){
+            arrayType = (ArrayType*)(arrayType->getElementType());
+        }
+        InitValueListExpr* expr = new InitValueListExpr(se);
+        if(!stk.empty())
+            stk.top()->addExpr(expr);
+        stk.push(expr);
+        $<exprtype>$ = expr;
+        leftCnt++;
+    } 
+      InitValList RBRACE {
+        leftCnt--;
+        while(stk.top() != $<exprtype>2 && stk.size() > (long unsigned int)(leftCnt + 1))
+            stk.pop();
+        if(stk.top() == $<exprtype>2)
+            stk.pop();
+        $$ = $<exprtype>2;
+        if(!stk.empty())
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                stk.pop();
+            }
+        int size = ((ArrayType*)($$->getSymbolEntry()->getType()))->getSize()/ TypeSystem::intType->getSize();
+        while(idx % size != 0)
+            arrayValue[idx++] = 0;
+        if(!stk.empty())
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+    }
+    ;
+
+ConstInitVal
+    : ConstExp {
+        $$ = $1;
+        if(!stk.empty()){
+            arrayValue[idx++] = $1->getValue();
+            Type* arrTy = stk.top()->getSymbolEntry()->getType();
+            if(arrTy == TypeSystem::constIntType)
+                stk.top()->addExpr($1);
+            else
+                while(arrTy){
+                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::constIntType){
+                        arrTy = ((ArrayType*)arrTy)->getElementType();
+                        SymbolEntry* se = new ConstantSymbolEntry(arrTy);
+                        InitValueListExpr* list = new InitValueListExpr(se);
+                        stk.top()->addExpr(list);
+                        stk.push(list);
+                    }else{
+                        stk.top()->addExpr($1);
+                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                            arrTy = ((ArrayType*)arrTy)->getArrayType();
+                            stk.pop();
+                        }
+                        break;
+                    }
+                }
+        }
+    }
+    | LBRACE RBRACE {
+        SymbolEntry* se;
+        ExprNode* list;
+        if(stk.empty()){
+            // 如果只用一个{}初始化数组，那么栈一定为空
+            // 此时也没必要再加入栈了
+            memset(arrayValue, 0, arrayType->getSize());
+            idx += arrayType->getSize() / TypeSystem::constIntType->getSize();
+            se = new ConstantSymbolEntry(arrayType);
+            list = new InitValueListExpr(se);
+        }else{
+            // 栈不空说明肯定不是只有{}
+            // 此时需要确定{}到底占了几个元素
+            Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
+            int len = type->getSize() / TypeSystem::constIntType->getSize();
+            memset(arrayValue + idx, 0, type->getSize());
+            idx += len;
+            se = new ConstantSymbolEntry(type);
+            list = new InitValueListExpr(se);
+            stk.top()->addExpr(list);
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                stk.pop();
+            }
+        }
+        $$ = list;
+    }
+    | LBRACE {
+        SymbolEntry* se;
+        if(!stk.empty())
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+        se = new ConstantSymbolEntry(arrayType);
+        if(arrayType->getElementType() != TypeSystem::intType){
+            arrayType = (ArrayType*)(arrayType->getElementType());
+        }
+        InitValueListExpr* expr = new InitValueListExpr(se);
+        if(!stk.empty())
+            stk.top()->addExpr(expr);
+        stk.push(expr);
+        $<exprtype>$ = expr;
+        leftCnt++;
+    } 
+      ConstInitValList RBRACE {
+        leftCnt--;
+        while(stk.top() != $<exprtype>2 && stk.size() > (long unsigned int)(leftCnt + 1))
+            stk.pop();
+        if(stk.top() == $<exprtype>2)
+            stk.pop();
+        $$ = $<exprtype>2;
+        if(!stk.empty())
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                stk.pop();
+            }
+        while(idx % (((ArrayType*)($$->getSymbolEntry()->getType()))->getSize()/ sizeof(int)) !=0 )
+            arrayValue[idx++] = 0;
+        if(!stk.empty())
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+    }
+    ;
+InitValList
+    : InitVal {
+        $$ = $1;
+    }
+    | InitValList COMMA InitVal {
+        $$ = $1;
+    }
+    ;
+ConstInitValList
+    : ConstInitVal {
+        $$ = $1;
+    }
+    | ConstInitValList COMMA ConstInitVal {
+        $$ = $1;
+    }
+    ;
 FuncDef
     :
     Type ID {
-        //类型为函数
-        Type *funcType;
-        //返回值类型为Type，
-        funcType = new FunctionType($1,{});
-        //新建符号表项，type，name，scope
-        SymbolEntry *se = new IdentifierSymbolEntry(funcType, $2, identifiers->getLevel());
-        //放入当前符号表内
-        identifiers->install($2, se);
-        //进入这个函数的符号表范围
         identifiers = new SymbolTable(identifiers);
     }
-    LPAREN FuncFormalParams {
-            SymbolEntry *se;
-            se = identifiers->lookup($2);
-            //这个断言的作用是检查之前是否正确把ID放入符号表
-            assert(se != nullptr);
-            //如果形参不为空，则放入参数列表
-            if($5!=nullptr){
-                //将函数参数类型写入符号表
-                //将$5（函数参数）的的Type给这个函数的各个参数
-                //(FunctionType*)(se->getType())就是上个代码的funcType
-                ((FunctionType*)(se->getType()))->setparamsType(((FuncDefParamsNode*)$5)->getParamsType());
-            }
-            //至此完成了给这个符号表项设置完参数
+    LPAREN MaybeFuncFParams RPAREN {
+        Type* funcType;
+        std::vector<Type*> vec;
+        std::vector<SymbolEntry*> vec1;
+        DeclStmt* temp = (DeclStmt*)$5;
+        while(temp){
+            vec.push_back(temp->getId()->getSymbolEntry()->getType());
+            vec1.push_back(temp->getId()->getSymbolEntry());
+            temp = (DeclStmt*)(temp->getNext());
+        }
+        funcType = new FunctionType($1, vec, vec1);
+        SymbolEntry* se = new IdentifierSymbolEntry(funcType, $2, identifiers->getPrev()->getLevel());
+        if(!identifiers->getPrev()->install($2, se)){
+            fprintf(stderr, "redefinition of \'%s %s\'\n", $2, se->getType()->toStr().c_str());
+        }
+        $<se>$ = se; 
+    } 
+    BlockStmt {
+        $$ = new FunctionDef($<se>7, (DeclStmt*)$5, $8);
+        SymbolTable* top = identifiers;
+        identifiers = identifiers->getPrev();
+        delete top;
+        delete []$2;
     }
-    RPAREN
-    BlockStmt
-    {
-        SymbolEntry *se;
-        se = identifiers->lookup($2);//$2是ID
-        //设置$$，因为得返回这个$$
-        $$ = new FunctionDef(se, (FuncDefParamsNode*)$5, $8);
+    ;
+MaybeFuncFParams
+    : FuncFParams {$$ = $1;}
+    | %empty {$$ = nullptr;}
+FuncFParams
+    : FuncFParams COMMA FuncFParam {
+        $$ = $1;
+        $$->setNext($3);
+    }
+    | FuncFParam {
+        $$ = $1;
     }
     ;
-// 函数形参列表
-FuncFormalParams
-    :   FuncFormalParams COMMA SingleFuncFormalParam {
-            FuncDefParamsNode* node = (FuncDefParamsNode*)$1;
-            node->addNext(((SingleFuncParamNode*)$3)->getId());
-            //node->addNext($3);
-            $$ = node;
+FuncFParam
+    : Type ID {
+        SymbolEntry* se;
+        se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
+        identifiers->install($2, se);
+        ((IdentifierSymbolEntry*)se)->setLabel();
+        ((IdentifierSymbolEntry*)se)->setAddr(new Operand(se));
+        $$ = new DeclStmt(new Id(se));
+        delete []$2;
+    }
+    | Type ID FuncArrayIndices {
+        // 这里也需要求值
+        SymbolEntry* se;
+        ExprNode* temp = $3;
+        Type* arr = TypeSystem::intType;
+        Type* arr1;
+        std::stack<ExprNode*> stk;
+        while(temp){
+            stk.push(temp);
+            temp = (ExprNode*)(temp->getNext());
         }
-    |   SingleFuncFormalParam {
-            FuncDefParamsNode* node = new FuncDefParamsNode();
-            node->addNext(((SingleFuncParamNode*)$1)->getId());
-            $$ = node;
+        while(!stk.empty()){
+            arr1 = new ArrayType(arr, stk.top()->getValue());
+            if(arr->isArray())
+                ((ArrayType*)arr)->setArrayType(arr1);
+            arr = arr1;
+            stk.pop();
         }
-    |   %empty {
-            $$ = nullptr;
-        }
+        se = new IdentifierSymbolEntry(arr, $2, identifiers->getLevel());
+        identifiers->install($2, se);
+        ((IdentifierSymbolEntry*)se)->setLabel();
+        ((IdentifierSymbolEntry*)se)->setAddr(new Operand(se));
+        $$ = new DeclStmt(new Id(se));
+        delete []$2;
+    }
     ;
-// 函数形参
-SingleFuncFormalParam
-    :   Type ID {
-            SymbolEntry *se = new IdentifierSymbolEntry($1, $2, identifiers->getLevel());
-            identifiers->install($2, se);
-            $$=new SingleFuncParamNode(new Id(se));
-        }
-    ;
-//调用函数所用的实参表
-FuncActualParams
-    :   FuncActualParams COMMA Exp {
-            FuncParamsNode* node = (FuncParamsNode*) $1;
-            node->addNext($3);
-            $$ = node;
-        }
-    |   Exp {
-            FuncParamsNode* node = new FuncParamsNode();
-            node->addNext($1);
-            $$ = node;
-        }
-    |   %empty {
-        //无参
-            $$ = nullptr;
-        }
-    ;
+FuncArrayIndices 
+    : LBRACKET RBRACKET {
+        $$ = new ExprNode(nullptr);
+    }
+    | FuncArrayIndices LBRACKET Exp RBRACKET {
+        $$ = $1;
+        $$->setNext($3);
+    }
 %%
 
 int yyerror(char const* message)

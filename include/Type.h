@@ -1,80 +1,134 @@
 #ifndef __TYPE_H__
 #define __TYPE_H__
-#include <vector>
 #include <string>
-                                           
-class Type
-{
-private:
+#include <vector>
+#include "SymbolTable.h"
+
+class Type {
+   private:
     int kind;
-protected:
-    //增加bool类型
-    enum {INT, VOID, FUNC, PTR, BOOL};
-public:
-    Type(int kind) : kind(kind) {};
-    virtual ~Type() {};
-    virtual std::string toStr() = 0;
-    bool isInt() const {return kind == INT;};
-    bool isVoid() const {return kind == VOID;};
-    bool isFunc() const {return kind == FUNC;};
-    //那这里要不要加isPtr?
-    bool isPtr() const {return kind==PTR;};
-    bool isBool() const {return kind == BOOL;};
-    //设置类型
-    void setKind(int n) {this->kind=n;};
-    //获取类型
-    int getKind() const { return kind; };
-};
 
-class IntType : public Type
-{
-private:
+   protected:
+    enum { INT, VOID, FUNC, PTR, ARRAY, STRING };
     int size;
-public:
-    IntType(int size) : Type(Type::INT), size(size){};
-    std::string toStr();
+
+   public:
+    Type(int kind, int size = 0) : kind(kind), size(size){};
+    virtual ~Type(){};
+    virtual std::string toStr() = 0;
+    bool isInt() const { return kind == INT; };
+    bool isVoid() const { return kind == VOID; };
+    bool isFunc() const { return kind == FUNC; };
+    bool isPtr() const { return kind == PTR; };
+    bool isArray() const { return kind == ARRAY; };
+    bool isString() const { return kind == STRING; };
+    int getKind() const { return kind; };
+    int getSize() const { return size; };
 };
 
-class VoidType : public Type
-{
-public:
+//int类型
+class IntType : public Type {
+   private:
+    bool constant;
+
+   public:
+    IntType(int size, bool constant = false)
+        : Type(Type::INT, size), constant(constant){};
+    std::string toStr();
+    bool isConst() const { return constant; };
+};
+
+//void类型
+class VoidType : public Type {
+   public:
     VoidType() : Type(Type::VOID){};
     std::string toStr();
 };
 
-class FunctionType : public Type
-{
-private:
-    Type *returnType;//返回类型
-    std::vector<Type*> paramsType;//各个函数参数的类型
-public:
-    FunctionType(Type* returnType, std::vector<Type*> paramsType) : 
-    Type(Type::FUNC), returnType(returnType), paramsType(paramsType){};
+//函数类型
+class FunctionType : public Type {
+   private:
+    Type* returnType;
+    std::vector<Type*> paramsType;
+    std::vector<SymbolEntry*> paramsSe;
+
+   public:
+    FunctionType(Type* returnType,
+                 std::vector<Type*> paramsType,
+                 std::vector<SymbolEntry*> paramsSe)
+        : Type(Type::FUNC),
+          returnType(returnType),
+          paramsType(paramsType),
+          paramsSe(paramsSe){};
+    void setParamsType(std::vector<Type*> paramsType) {
+        this->paramsType = paramsType;
+    };
+    std::vector<Type*> getParamsType() { return paramsType; };
+    std::vector<SymbolEntry*> getParamsSe() { return paramsSe; };
+    Type* getRetType() { return returnType; };
     std::string toStr();
-    //设置参数类型
-    void setparamsType(std::vector<Type*>);
-    Type* getRetType() {return this->returnType;};
 };
 
-class PointerType : public Type
-{
-private:
-    Type *valueType;
-public:
-    PointerType(Type* valueType) : Type(Type::PTR) {this->valueType = valueType;};
+//数组类型
+class ArrayType : public Type {
+   private:
+    Type* elementType;
+    Type* arrayType = nullptr;
+    int length;
+    bool constant;
+
+   public:
+    ArrayType(Type* elementType, int length, bool constant = false)
+        : Type(Type::ARRAY),
+          elementType(elementType),
+          length(length),
+          constant(constant) {
+        size = elementType->getSize() * length;
+    };
+    std::string toStr();
+    int getLength() const { return length; };
+    Type* getElementType() const { return elementType; };
+    void setArrayType(Type* arrayType) { this->arrayType = arrayType; };
+    bool isConst() const { return constant; };
+    Type* getArrayType() const { return arrayType; };
+};
+
+//string类型
+class StringType : public Type {
+   private:
+    int length;
+
+   public:
+    StringType(int length) : Type(Type::STRING), length(length){};
+    int getLength() const { return length; };
     std::string toStr();
 };
 
-class TypeSystem
-{
-private:
+//指针类型
+class PointerType : public Type {
+   private:
+    Type* valueType;
+
+   public:
+    PointerType(Type* valueType) : Type(Type::PTR) {
+        this->valueType = valueType;
+    };
+    std::string toStr();
+    Type* getType() const { return valueType; };
+};
+
+class TypeSystem {
+   private:
     static IntType commonInt;
     static IntType commonBool;
     static VoidType commonVoid;
-public:
-    static Type *intType;
-    static Type *voidType;
-    static Type *boolType;
+    static IntType commonConstInt;
+
+   public:
+    static Type* intType;
+    static Type* voidType;
+    static Type* boolType;
+    static Type* constIntType;
 };
 
 #endif
