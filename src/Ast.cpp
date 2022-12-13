@@ -539,10 +539,25 @@ void FunctionDef::genCode() {
     }
 }
 
-
-
 void Constant::genCode() {
     // we don't need to generate code.
+}
+
+bool Constant::typeCheck(Type* retType) {
+    return false;
+}
+
+void Constant::output(int level) {
+    std::string type, value;
+    type = symbolEntry->getType()->toStr();
+    value = symbolEntry->toStr();
+    fprintf(yyout, "%*cIntegerLiteral\tvalue: %s\ttype: %s\n", level, ' ',
+            value.c_str(), type.c_str());
+}
+
+int Constant::getValue() 
+{
+    return ((ConstantSymbolEntry*)symbolEntry)->getValue();
 }
 
 void Id::genCode() 
@@ -551,6 +566,67 @@ void Id::genCode()
     Operand *addr = dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getAddr();
     new LoadInstruction(dst, addr, bb);
 }
+
+bool Id::typeCheck(Type* retType) {
+    return false;
+}
+
+Type* Id::getType() {
+    SymbolEntry* se = this->getSymbolEntry();
+    if (!se)
+        return TypeSystem::voidType;
+    Type* type = se->getType();
+    if (!arrIdx)
+        return type;
+    else if (!type->isArray()) {
+        fprintf(stderr, "1subscripted value is not an array\n");
+        return TypeSystem::voidType;
+    } else {
+        ArrayType* temp1 = (ArrayType*)type;
+        ExprNode* temp2 = arrIdx;
+        while (!temp1->getElementType()->isInt()) {
+            if (!temp2) {
+                return temp1;
+            }
+            temp2 = (ExprNode*)(temp2->getNext());
+            temp1 = (ArrayType*)(temp1->getElementType());
+        }
+        if (!temp2) {
+            fprintf(stderr, "2subscripted value is not an array\n");
+            return temp1;
+        } else if (temp2->getNext()) {
+            fprintf(stderr, "3subscripted value is not an array\n");
+            return TypeSystem::voidType;
+        }
+    }
+    return TypeSystem::intType;
+}
+
+int Id::getValue() {
+    // assert(symbolEntry->getType()->isInt());
+    return ((IdentifierSymbolEntry*)symbolEntry)->getValue();
+}
+
+void Id::output(int level) {
+    std::string name, type;
+    int scope;
+    if (symbolEntry) {
+        name = symbolEntry->toStr();
+        type = symbolEntry->getType()->toStr();
+        scope = dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getScope();
+        fprintf(yyout, "%*cId\tname: %s\tscope: %d\ttype: %s\n", level, ' ',
+                name.c_str(), scope, type.c_str());
+        if (arrIdx) {
+            ExprNode* temp = arrIdx;
+            int i = 0;
+            while (temp) {
+                temp->output(level + 4 + 4 * i++);
+                temp = (ExprNode*)(temp->getNext());
+            }
+        }
+    }
+}
+
 
 void IfStmt::genCode() {
     Function *func;
@@ -856,13 +932,7 @@ bool FunctionDef::typeCheck(Type* retType) {
 }
 
 
-bool Constant::typeCheck(Type* retType) {
-    return false;
-}
 
-bool Id::typeCheck(Type* retType) {
-    return false;
-}
 
 bool IfStmt::typeCheck(Type* retType) {
     if (thenStmt)
@@ -961,36 +1031,6 @@ AssignStmt::AssignStmt(ExprNode* lval, ExprNode* expr)
     }
 }
 
-Type* Id::getType() {
-    SymbolEntry* se = this->getSymbolEntry();
-    if (!se)
-        return TypeSystem::voidType;
-    Type* type = se->getType();
-    if (!arrIdx)
-        return type;
-    else if (!type->isArray()) {
-        fprintf(stderr, "1subscripted value is not an array\n");
-        return TypeSystem::voidType;
-    } else {
-        ArrayType* temp1 = (ArrayType*)type;
-        ExprNode* temp2 = arrIdx;
-        while (!temp1->getElementType()->isInt()) {
-            if (!temp2) {
-                return temp1;
-            }
-            temp2 = (ExprNode*)(temp2->getNext());
-            temp1 = (ArrayType*)(temp1->getElementType());
-        }
-        if (!temp2) {
-            fprintf(stderr, "2subscripted value is not an array\n");
-            return temp1;
-        } else if (temp2->getNext()) {
-            fprintf(stderr, "3subscripted value is not an array\n");
-            return TypeSystem::voidType;
-        }
-    }
-    return TypeSystem::intType;
-}
 
 void ExprNode::output(int level) {
     std::string name, type;
@@ -1010,43 +1050,7 @@ void Ast::output() {
 
 
 
-void Constant::output(int level) {
-    std::string type, value;
-    type = symbolEntry->getType()->toStr();
-    value = symbolEntry->toStr();
-    fprintf(yyout, "%*cIntegerLiteral\tvalue: %s\ttype: %s\n", level, ' ',
-            value.c_str(), type.c_str());
-}
 
-int Constant::getValue() {
-    // assert(symbolEntry->getType()->isInt());
-    return ((ConstantSymbolEntry*)symbolEntry)->getValue();
-}
-
-int Id::getValue() {
-    // assert(symbolEntry->getType()->isInt());
-    return ((IdentifierSymbolEntry*)symbolEntry)->getValue();
-}
-
-void Id::output(int level) {
-    std::string name, type;
-    int scope;
-    if (symbolEntry) {
-        name = symbolEntry->toStr();
-        type = symbolEntry->getType()->toStr();
-        scope = dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getScope();
-        fprintf(yyout, "%*cId\tname: %s\tscope: %d\ttype: %s\n", level, ' ',
-                name.c_str(), scope, type.c_str());
-        if (arrIdx) {
-            ExprNode* temp = arrIdx;
-            int i = 0;
-            while (temp) {
-                temp->output(level + 4 + 4 * i++);
-                temp = (ExprNode*)(temp->getNext());
-            }
-        }
-    }
-}
 
 void InitValueListExpr::output(int level) {
     std::string type;

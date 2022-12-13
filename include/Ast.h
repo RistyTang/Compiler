@@ -137,7 +137,8 @@ public:
 //符号表项转node
 class Constant : public ExprNode {
    public:
-    Constant(SymbolEntry* se) : ExprNode(se) {
+    Constant(SymbolEntry* se) : ExprNode(se) 
+    {
         dst = new Operand(se);
         type = TypeSystem::intType;//常数为int类型
     };
@@ -149,7 +150,8 @@ class Constant : public ExprNode {
 
 //Id继承了ExprNode
 //私有成员只有一个symbolentry
-class Id : public ExprNode {
+class Id : public ExprNode 
+{
    private:
     ExprNode* arrIdx;
     bool left = false;
@@ -157,22 +159,9 @@ class Id : public ExprNode {
    public:
     Id(SymbolEntry* se, ExprNode* arrIdx = nullptr)
         : ExprNode(se), arrIdx(arrIdx) {
-        if (se) {
-            type = se->getType();
-            //单个int类型
-            if (type->isInt()) {
-                SymbolEntry* temp = new TemporarySymbolEntry(
-                    TypeSystem::intType, SymbolTable::getLabel());
-                dst = new Operand(temp);
-            } 
-            //新增数组类型实现
-            else if (type->isArray()) {
-                SymbolEntry* temp = new TemporarySymbolEntry(
-                    TypeSystem::intType,//数组也是int类型
-                    SymbolTable::getLabel());
-                dst = new Operand(temp);
-            }
-        }
+        type = se->getType();
+        SymbolEntry* temp = new TemporarySymbolEntry( type,SymbolTable::getLabel());
+        dst = new Operand(temp);
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
