@@ -27,9 +27,7 @@ class Node {
     static IRBuilder* builder;
     //回填实现
     void backPatch(std::vector<Instruction*>& list, BasicBlock* bb);
-    std::vector<Instruction*> merge(std::vector<Instruction*>& list1,
-                                    std::vector<Instruction*>& list2);
-
+    std::vector<Instruction*> merge(std::vector<Instruction*>& list1, std::vector<Instruction*>& list2);
    public:
     Node();
     int getSeq() const { return seq; };
@@ -45,7 +43,6 @@ class Node {
     std::vector<Instruction*>& trueList() { return true_list; }
     std::vector<Instruction*>& falseList() { return false_list; }
 };
-
 
 class ExprNode : public Node {
 private:
@@ -63,7 +60,6 @@ public:
     Operand* getOperand() { return dst; };
     void output(int level);
     Operand* getDst() {return this->dst;};
-    void setDst(Operand* newdst) { this->dst=newdst; }; 
     virtual int getValue() { return -1; };
     bool isExpr() const { return kind == EXPR; };
     bool isInitValueListExpr() const { return kind == INITVALUELISTEXPR; };
@@ -75,6 +71,8 @@ public:
     void genCode();
     virtual Type* getType() { return type; };
     Type* getOriginType() { return type; };
+    void SetType(Type * type) { this->type=type; } ;
+    void setDst(Operand* newdst) { this->dst=newdst; }; 
 };
 
 //二元运算符的实现
@@ -123,12 +121,13 @@ class OneOpExpr : public ExprNode {
     void setType(Type* type) { this->type = type; }
 };
 
-//函数调用节点
-class FuncCallNode : public ExprNode {
-   private:
+//函数调用节点——————待修改
+class FuncCallNode : public ExprNode 
+{
+private:
     ExprNode* param;
 
-   public:
+public:
     FuncCallNode(SymbolEntry* se, ExprNode* param = nullptr);
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
@@ -211,13 +210,11 @@ class InitValueListExpr : public ExprNode {
 class ImplictCastExpr : public ExprNode {
    private:
     ExprNode* expr;
-
    public:
-    ImplictCastExpr(ExprNode* expr)
-        : ExprNode(nullptr, IMPLICTCASTEXPR), expr(expr) {
+    ImplictCastExpr(ExprNode* expr) : ExprNode(nullptr, IMPLICTCASTEXPR), expr(expr) 
+    {
         type = TypeSystem::boolType;
-        dst = new Operand(
-            new TemporarySymbolEntry(type, SymbolTable::getLabel()));
+        dst = new Operand(new TemporarySymbolEntry(type, SymbolTable::getLabel()));
     };
     void output(int level);
     ExprNode* getExpr() const { return expr; };
@@ -264,7 +261,8 @@ class DeclStmt : public StmtNode {
     ExprNode* expr;
 
    public:
-    DeclStmt(Id* id, ExprNode* expr = nullptr) : id(id) {
+    DeclStmt(Id* id, ExprNode* expr = nullptr) : id(id) 
+    {
         if (expr) {
             this->expr = expr;
             if (expr->isInitValueListExpr())
@@ -295,7 +293,6 @@ class IfStmt : public StmtNode {
    public:
     IfStmt(ExprNode* cond, StmtNode* thenStmt) : cond(cond), thenStmt(thenStmt) 
     {
-        
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
@@ -309,12 +306,14 @@ class IfElseStmt : public StmtNode {
     StmtNode* elseStmt;
 
    public:
-    IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt)
-        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
+    IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt) : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) 
+    {
+        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) 
+        {
             ImplictCastExpr* temp = new ImplictCastExpr(cond);
             this->cond = temp;
         }
+        
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);

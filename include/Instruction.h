@@ -45,7 +45,7 @@ protected:
     };
 };
 
-// meaningless instruction, used as the head node of the instruction list.
+// 作为指令列表中的第一个，是无意义的指令
 class DummyInstruction : public Instruction {
    public:
     DummyInstruction() : Instruction(-1, nullptr){};
@@ -156,7 +156,6 @@ class FuncCallInstruction : public Instruction {
                     BasicBlock* insert_bb = nullptr);
     void output() const;
 };
-
 
 class ZextInstruction : public Instruction {
    public:
