@@ -22,7 +22,7 @@ class Instruction {
     Instruction* getPrev();
     virtual void output() const = 0;
 
-   protected:
+protected:
     unsigned instType;
     unsigned opcode;
     Instruction* prev;
@@ -115,7 +115,7 @@ class UncondBrInstruction : public Instruction {
     BasicBlock* getBranch();
 
    protected:
-    BasicBlock* branch;
+    BasicBlock* branch;//跳转到的基本块branch
 };
 
 // conditional branch
@@ -144,17 +144,19 @@ class RetInstruction : public Instruction {
     void output() const;
 };
 
-class CallInstruction : public Instruction {
+//函数调用指令
+class FuncCallInstruction : public Instruction {
    private:
     SymbolEntry* func;
 
    public:
-    CallInstruction(Operand* dst,
+    FuncCallInstruction(Operand* dst,
                     SymbolEntry* func,
                     std::vector<Operand*> params,
                     BasicBlock* insert_bb = nullptr);
     void output() const;
 };
+
 
 class ZextInstruction : public Instruction {
    public:
@@ -170,17 +172,5 @@ class XorInstruction : public Instruction {
     void output() const;
 };
 
-class GepInstruction : public Instruction {
-   private:
-    bool first;
-
-   public:
-    GepInstruction(Operand* dst,
-                   Operand* arr,
-                   Operand* idx,
-                   BasicBlock* insert_bb = nullptr,
-                   bool first = false);
-    void output() const;
-};
 
 #endif

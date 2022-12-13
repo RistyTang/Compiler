@@ -48,19 +48,22 @@ class Node {
 
 
 class ExprNode : public Node {
-   private:
+private:
     int kind;
 
-   protected:
+protected:
     enum { EXPR, INITVALUELISTEXPR, IMPLICTCASTEXPR, ONEOPEXPR};
     Type* type;
     SymbolEntry* symbolEntry;
     Operand* dst;  // The result of the subtree is stored into dst.
-   public:
+public:
+   bool isCond = false; //判断是否用做条件，默认为false
     ExprNode(SymbolEntry* symbolEntry, int kind = EXPR)
         : kind(kind), symbolEntry(symbolEntry){};
     Operand* getOperand() { return dst; };
     void output(int level);
+    Operand* getDst() {return this->dst;};
+    void setDst(Operand* newdst) { this->dst=newdst; }; 
     virtual int getValue() { return -1; };
     bool isExpr() const { return kind == EXPR; };
     bool isInitValueListExpr() const { return kind == INITVALUELISTEXPR; };
@@ -120,12 +123,13 @@ class OneOpExpr : public ExprNode {
     void setType(Type* type) { this->type = type; }
 };
 
-class CallExpr : public ExprNode {
+//函数调用节点
+class FuncCallNode : public ExprNode {
    private:
     ExprNode* param;
 
    public:
-    CallExpr(SymbolEntry* se, ExprNode* param = nullptr);
+    FuncCallNode(SymbolEntry* se, ExprNode* param = nullptr);
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
     void genCode();
@@ -203,7 +207,7 @@ class InitValueListExpr : public ExprNode {
     void fill();
 };
 
-// 仅用于int2bool
+// 将表达式转化为bool类型
 class ImplictCastExpr : public ExprNode {
    private:
     ExprNode* expr;
@@ -224,10 +228,8 @@ class ImplictCastExpr : public ExprNode {
 class StmtNode : public Node {
    private:
     int kind;
-
    protected:
     enum { IF, IFELSE, WHILE, COMPOUND, RETURN };
-
    public:
     StmtNode(int kind = -1) : kind(kind){};
     bool isIf() const { return kind == IF; };
@@ -275,26 +277,25 @@ class DeclStmt : public StmtNode {
     Id* getId() { return id; };
 };
 
-class BlankStmt : public StmtNode {
+//空语句也建一个吧。
+class EmptyStmt : public StmtNode {
    public:
-    BlankStmt(){};
+    EmptyStmt(){};
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
     void genCode();
 };
 
+//if语句
 class IfStmt : public StmtNode {
    private:
     ExprNode* cond;
     StmtNode* thenStmt;
 
    public:
-    IfStmt(ExprNode* cond, StmtNode* thenStmt)
-        : cond(cond), thenStmt(thenStmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
+    IfStmt(ExprNode* cond, StmtNode* thenStmt) : cond(cond), thenStmt(thenStmt) 
+    {
+        
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
@@ -320,6 +321,7 @@ class IfElseStmt : public StmtNode {
     void genCode();
 };
 
+//while语句
 class WhileStmt : public StmtNode {
    private:
     ExprNode* cond;
@@ -341,6 +343,7 @@ class WhileStmt : public StmtNode {
     BasicBlock* get_end_bb(){return this->end_bb;};
 };
 
+//break语句，出现在while中
 class BreakStmt : public StmtNode {
     private:
     StmtNode * whileStmt;
@@ -351,6 +354,7 @@ class BreakStmt : public StmtNode {
     void genCode();
 };
 
+//continue语句
 class ContinueStmt : public StmtNode {
     private:
     StmtNode *whileStmt;
@@ -361,6 +365,7 @@ class ContinueStmt : public StmtNode {
     void genCode();
 };
 
+//return语句
 class ReturnStmt : public StmtNode {
    private:
     ExprNode* retValue;
@@ -372,6 +377,7 @@ class ReturnStmt : public StmtNode {
     void genCode();
 };
 
+//赋值语句
 class AssignStmt : public StmtNode {
    private:
     ExprNode* lval;
@@ -384,6 +390,7 @@ class AssignStmt : public StmtNode {
     void genCode();
 };
 
+//单独表达式语句也需要一个class
 class ExprStmt : public StmtNode {
    private:
     ExprNode* expr;
@@ -395,6 +402,7 @@ class ExprStmt : public StmtNode {
     void genCode();
 };
 
+//函数定义节点
 class FunctionDef : public StmtNode {
    private:
     SymbolEntry* se;

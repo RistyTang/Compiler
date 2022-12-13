@@ -9,7 +9,7 @@ class Type {
     int kind;
 
    protected:
-    enum { INT, VOID, FUNC, PTR, ARRAY, STRING };
+    enum { INT, VOID, FUNC, PTR, ARRAY, BOOL};
     int size;
 
    public:
@@ -21,7 +21,8 @@ class Type {
     bool isFunc() const { return kind == FUNC; };
     bool isPtr() const { return kind == PTR; };
     bool isArray() const { return kind == ARRAY; };
-    bool isString() const { return kind == STRING; };
+    bool isBool() const {return kind == BOOL; };
+    void setKind(int kinds) { this->kind = kinds; };
     int getKind() const { return kind; };
     int getSize() const { return size; };
 };
@@ -43,6 +44,15 @@ class VoidType : public Type {
    public:
     VoidType() : Type(Type::VOID){};
     std::string toStr();
+};
+
+//bool类型
+class BoolType : public Type
+{
+public:
+    BoolType() : Type(Type::BOOL){};
+    std::string toStr();
+    Type* getrettype(){return NULL;}
 };
 
 //函数类型
@@ -93,17 +103,6 @@ class ArrayType : public Type {
     Type* getArrayType() const { return arrayType; };
 };
 
-//string类型
-class StringType : public Type {
-   private:
-    int length;
-
-   public:
-    StringType(int length) : Type(Type::STRING), length(length){};
-    int getLength() const { return length; };
-    std::string toStr();
-};
-
 //指针类型
 class PointerType : public Type {
    private:
@@ -122,13 +121,11 @@ class TypeSystem {
     static IntType commonInt;
     static IntType commonBool;
     static VoidType commonVoid;
-    static IntType commonConstInt;
 
    public:
     static Type* intType;
     static Type* voidType;
     static Type* boolType;
-    static Type* constIntType;
 };
 
 #endif

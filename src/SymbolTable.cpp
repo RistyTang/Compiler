@@ -33,12 +33,6 @@ ConstantSymbolEntry::ConstantSymbolEntry(Type* type, int value)
     this->value = value;
 }
 
-ConstantSymbolEntry::ConstantSymbolEntry(Type* type, std::string value)
-    : SymbolEntry(type, SymbolEntry::CONSTANT) {
-    assert(type->isString());
-    this->strValue = value;
-}
-
 ConstantSymbolEntry::ConstantSymbolEntry(Type* type)
     : SymbolEntry(type, SymbolEntry::CONSTANT) {
     // assert(type->isArray());
@@ -49,17 +43,11 @@ int ConstantSymbolEntry::getValue() const {
     return value;
 }
 
-std::string ConstantSymbolEntry::getStrValue() const {
-    assert(type->isString());
-    return strValue;
-}
 
 std::string ConstantSymbolEntry::toStr() {
     std::ostringstream buffer;
     if (type->isInt())
         buffer << value;
-    else if (type->isString())
-        buffer << strValue;
     return buffer.str();
 }
 

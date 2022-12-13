@@ -2,12 +2,10 @@
 #include <assert.h>
 #include <sstream>
 
-IntType TypeSystem::commonConstInt = IntType(32, true);
 IntType TypeSystem::commonInt = IntType(32);
 IntType TypeSystem::commonBool = IntType(1);
 VoidType TypeSystem::commonVoid = VoidType();
 
-Type* TypeSystem::constIntType = &commonConstInt;
 Type* TypeSystem::intType = &commonInt;
 Type* TypeSystem::voidType = &commonVoid;
 Type* TypeSystem::boolType = &commonBool;
@@ -63,12 +61,6 @@ std::string FunctionType::toStr() {
             buffer << ", ";
     }
     buffer << ')';
-    return buffer.str();
-}
-
-std::string StringType::toStr() {
-    std::ostringstream buffer;
-    buffer << "const char[" << length << "]";
     return buffer.str();
 }
 

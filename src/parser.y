@@ -44,7 +44,7 @@
 %token CONST
 %token RETURN CONTINUE BREAK
 
-%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefList VarDef ConstDef VarDefList FuncFParam FuncFParams MaybeFuncFParams BlankStmt
+%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefList VarDef ConstDef VarDefList FuncFParam FuncFParams MaybeFuncFParams EmptyStmt
 %type<exprtype> Exp AddExp Cond LOrExp PrimaryExp LVal RelExp LAndExp MulExp ConstExp EqExp UnaryExp InitVal ConstInitVal InitValList ConstInitValList FuncArrayIndices FuncRParams ArrayIndices
 %type<type> Type
 
@@ -68,7 +68,7 @@ Stmt
     }
     | ExprStmt {$$ = $1;}
     | BlockStmt {$$=$1;}
-    | BlankStmt {$$ = $1;}
+    | EmptyStmt {$$ = $1;}
     | IfStmt {$$ = $1;}
     | WhileStmt {$$ = $1;}
     | BreakStmt {
@@ -113,9 +113,9 @@ ExprStmt
         $$ = new ExprStmt($1);
     }
     ;
-BlankStmt
+EmptyStmt
     : SEMICOLON {
-        $$ = new BlankStmt();
+        $$ = new EmptyStmt();
     }
     ;
 BlockStmt
@@ -191,19 +191,6 @@ PrimaryExp
     | LVal {
         $$ = $1;
     }
-    | STRING {
-        SymbolEntry* se;
-        se = globals->lookup(std::string($1));
-        // 这里如果str内容和变量名相同 怎么处理
-        if(se == nullptr){
-            Type* type = new StringType(strlen($1));
-            se = new ConstantSymbolEntry(type, std::string($1));
-            globals->install(std::string($1), se);
-        }
-        ExprNode* expr = new ExprNode(se);
-
-        $$ = expr;
-    }
     | INTEGER {
         SymbolEntry* se = new ConstantSymbolEntry(TypeSystem::intType, $1);
         $$ = new Constant(se);
@@ -216,14 +203,14 @@ UnaryExp
         se = identifiers->lookup($1);
         if(se == nullptr)
             fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
-        $$ = new CallExpr(se, $3);
+        $$ = new FuncCallNode(se, $3);
     }
     | ID LPAREN RPAREN {
         SymbolEntry* se;
         se = identifiers->lookup($1);
         if(se == nullptr)
             fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
-        $$ = new CallExpr(se);
+        $$ = new FuncCallNode(se);
     }
     | ADD UnaryExp {$$ = $2;}
     | SUB UnaryExp {
@@ -434,7 +421,7 @@ VarDef
 ConstDef
     : ID ASSIGN ConstInitVal {
         SymbolEntry* se;
-        se = new IdentifierSymbolEntry(TypeSystem::constIntType, $1, identifiers->getLevel());
+        se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
         if(!identifiers->install($1, se))
             fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
         identifiers->install($1, se);
@@ -450,7 +437,7 @@ ConstDef
             vec.push_back(temp->getValue());
             temp = (ExprNode*)(temp->getNext());
         }
-        Type* type = TypeSystem::constIntType;
+        Type* type = TypeSystem::intType;
         Type* temp1;
         for(auto it = vec.rbegin(); it != vec.rend(); it++) {
             temp1 = new ArrayType(type, *it, true);
@@ -582,11 +569,11 @@ ConstInitVal
         if(!stk.empty()){
             arrayValue[idx++] = $1->getValue();
             Type* arrTy = stk.top()->getSymbolEntry()->getType();
-            if(arrTy == TypeSystem::constIntType)
+            if(arrTy == TypeSystem::intType)
                 stk.top()->addExpr($1);
             else
                 while(arrTy){
-                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::constIntType){
+                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType){
                         arrTy = ((ArrayType*)arrTy)->getElementType();
                         SymbolEntry* se = new ConstantSymbolEntry(arrTy);
                         InitValueListExpr* list = new InitValueListExpr(se);
@@ -610,14 +597,15 @@ ConstInitVal
             // 如果只用一个{}初始化数组，那么栈一定为空
             // 此时也没必要再加入栈了
             memset(arrayValue, 0, arrayType->getSize());
-            idx += arrayType->getSize() / TypeSystem::constIntType->getSize();
+            idx += arrayType->getSize() / TypeSystem::intType->getSize();
             se = new ConstantSymbolEntry(arrayType);
             list = new InitValueListExpr(se);
-        }else{
+        }else
+        {
             // 栈不空说明肯定不是只有{}
             // 此时需要确定{}到底占了几个元素
             Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
-            int len = type->getSize() / TypeSystem::constIntType->getSize();
+            int len = type->getSize() / TypeSystem::intType->getSize();
             memset(arrayValue + idx, 0, type->getSize());
             idx += len;
             se = new ConstantSymbolEntry(type);
