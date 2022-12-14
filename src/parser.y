@@ -38,7 +38,7 @@
 }
 
 %start Program
-%token <strtype> ID STRING
+%token <strtype> ID
 %token <itype> INTEGER
 %token IF ELSE WHILE
 %token INT VOID

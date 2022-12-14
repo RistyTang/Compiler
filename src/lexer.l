@@ -372,15 +372,7 @@ LINECOMMENT \/\/[^\n]*
     yylval.strtype = lexeme;
     return ID;
 }
-{STRING} {
-    if(dump_tokens)
-        DEBUG_FOR_LAB4(yytext);
-    char* lexeme;
-    lexeme = new char[strlen(yytext) + 1];
-    strcpy(lexeme, yytext);
-    yylval.strtype = lexeme;
-    return STRING;
-}
+
 <*>{EOL} {
     chars += strlen(yytext);
     yylineno++;

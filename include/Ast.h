@@ -285,9 +285,10 @@ class IfStmt : public StmtNode {
     StmtNode* thenStmt;
 
    public:
-    IfStmt(ExprNode* cond, StmtNode* thenStmt)
-        : cond(cond), thenStmt(thenStmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
+    IfStmt(ExprNode* cond, StmtNode* thenStmt) : cond(cond), thenStmt(thenStmt) 
+    {
+        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) 
+        {
             ImplictCastExpr* temp = new ImplictCastExpr(cond);
             this->cond = temp;
         }

@@ -622,54 +622,116 @@ void Id::genCode() {
     }
 }
 
-void IfStmt::genCode() {
-    Function* func;
+void IfStmt::genCode() 
+{
+    Function *func;
     BasicBlock *then_bb, *end_bb;
-
+    //得到后续生成的指令要插入的基本块 bb
     func = builder->getInsertBB()->getParent();
+    //if(){}中为then基本块内容
     then_bb = new BasicBlock(func);
+    //}结束时候的基本块
     end_bb = new BasicBlock(func);
-
+    //生成 cond 结点的中间代码
     cond->genCode();
-
+    //cond 为真时将跳转到基本块 then_bb，cond 为假时将跳转到基本块 end_bb
     backPatch(cond->trueList(), then_bb);
     backPatch(cond->falseList(), end_bb);
-
+    //设置插入点为基本块 then_bb
     builder->setInsertBB(then_bb);
+    //生成 thenStmt 结点的中间代码
     thenStmt->genCode();
+    //因为生成thenStmt 结点中间代码的过程中可能改变指令的插入点，因此更新
     then_bb = builder->getInsertBB();
+    //生成无条件跳转指令跳转到 end_bb。最后设置后续指令的插入点为then_bb
     new UncondBrInstruction(end_bb, then_bb);
 
     builder->setInsertBB(end_bb);
 }
 
-void IfElseStmt::genCode() {
-    Function* func;
-    BasicBlock *then_bb, *else_bb, *end_bb /*, *bb*/;
-    // bb = builder->getInsertBB();
-    func = builder->getInsertBB()->getParent();
-    then_bb = new BasicBlock(func);
-    else_bb = new BasicBlock(func);
-    end_bb = new BasicBlock(func);
+bool IfStmt::typeCheck(Type* retType) 
+{
+    if (thenStmt)
+        return thenStmt->typeCheck(retType);
+    return false;
+}
 
+void IfStmt::output(int level) 
+{
+    fprintf(yyout, "%*cIfStmt\n", level, ' ');
+    cond->output(level + 4);
+    thenStmt->output(level + 4);
+}
+
+void IfElseStmt::genCode() 
+{
+    //仿写ifStmt
+    Function* func;
+    BasicBlock *then_bb, *else_bb, *end_bb ;//得到后续生成的指令要插入的基本块 bb
+    //所在的函数
+    func = builder->getInsertBB()->getParent();
+    //if(){}中为then基本块内容
+    then_bb = new BasicBlock(func);
+    //else{}的基本块
+    else_bb = new BasicBlock(func);
+    //else{}结束时候的基本块
+    end_bb = new BasicBlock(func);
+    //先生成 cond 结点的中间代码
     cond->genCode();
-    // Operand* IfElsecond = cond->getOperand();
+    //cond 为真时将跳转到基本块 then_bb，cond 为假时将跳转到基本块 else_bb
     backPatch(cond->trueList(), then_bb);
     backPatch(cond->falseList(), else_bb);
-
-    // new CondBrInstruction(then_bb,else_bb,IfElsecond,bb);
-
+    //设置插入点为基本块 then_bb
     builder->setInsertBB(then_bb);
+    //之后在thenStmt中编写中间代码
     thenStmt->genCode();
+    //因为生成thenStmt 结点中间代码的过程中可能改变指令的插入点，因此更新
     then_bb = builder->getInsertBB();
+    //生成无条件跳转指令之后跳转到 end_bb。最后设置后续指令的插入点为 then_bb
     new UncondBrInstruction(end_bb, then_bb);
-
+    //编写else{}中的中间代码
     builder->setInsertBB(else_bb);
     elseStmt->genCode();
     else_bb = builder->getInsertBB();
+    //生成无条件跳转指令之后跳转到 end_bb。最后设置后续指令的插入点为 else_bb
     new UncondBrInstruction(end_bb, else_bb);
-
+    //编写end基本块的中间代码
     builder->setInsertBB(end_bb);
+}
+
+void IfElseStmt::output(int level) 
+{
+    fprintf(yyout, "%*cIfElseStmt\n", level, ' ');
+    cond->output(level + 4);
+    thenStmt->output(level + 4);
+    elseStmt->output(level + 4);
+}
+
+bool IfElseStmt::typeCheck(Type* retType) 
+{
+    bool flag1 = false, flag2 = false;
+    if (thenStmt)
+        flag1 = thenStmt->typeCheck(retType);
+    if (elseStmt)
+        flag2 = elseStmt->typeCheck(retType);
+    return flag1 || flag2;
+}
+
+//使用了这个class时是因为把int的表达式修改为bool类型
+void ImplictCastExpr::genCode() 
+{
+    expr->genCode();
+    BasicBlock* bb = builder->getInsertBB();
+    Function* func = bb->getParent();
+    BasicBlock* trueBB = new BasicBlock(func);
+    BasicBlock* tempbb = new BasicBlock(func);
+    BasicBlock* falseBB = new BasicBlock(func);
+
+    new CmpInstruction(
+        CmpInstruction::NE, this->dst, this->expr->getOperand(),
+        new Operand(new ConstantSymbolEntry(TypeSystem::intType, 0)), bb);
+    this->trueList().push_back(new CondBrInstruction(trueBB, tempbb, this->dst, bb));
+    this->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
 }
 
 void CompoundStmt::genCode() {
@@ -914,28 +976,19 @@ bool Id::typeCheck(Type* retType)
     return false;
 }
 
-bool IfStmt::typeCheck(Type* retType) {
-    if (thenStmt)
-        return thenStmt->typeCheck(retType);
-    return false;
-}
 
-bool IfElseStmt::typeCheck(Type* retType) {
-    bool flag1 = false, flag2 = false;
-    if (thenStmt)
-        flag1 = thenStmt->typeCheck(retType);
-    if (elseStmt)
-        flag2 = elseStmt->typeCheck(retType);
-    return flag1 || flag2;
-}
 
-bool CompoundStmt::typeCheck(Type* retType) {
+
+
+bool CompoundStmt::typeCheck(Type* retType) 
+{
     if (stmt)
         return stmt->typeCheck(retType);
     return false;
 }
 
-bool SeqNode::typeCheck(Type* retType) {
+bool SeqNode::typeCheck(Type* retType) 
+{
     bool flag1 = false, flag2 = false;
     if (stmt1)
         flag1 = stmt1->typeCheck(retType);
@@ -1148,24 +1201,15 @@ void EmptyStmt::output(int level) {
     fprintf(yyout, "%*cEmptyStmt\n", level, ' ');
 }
 
-void IfStmt::output(int level) {
-    fprintf(yyout, "%*cIfStmt\n", level, ' ');
-    cond->output(level + 4);
-    thenStmt->output(level + 4);
-}
 
-void IfElseStmt::output(int level) {
-    fprintf(yyout, "%*cIfElseStmt\n", level, ' ');
-    cond->output(level + 4);
-    thenStmt->output(level + 4);
-    elseStmt->output(level + 4);
-}
+
 
 void WhileStmt::output(int level) {
     fprintf(yyout, "%*cWhileStmt\n", level, ' ');
     cond->output(level + 4);
     stmt->output(level + 4);
 }
+
 void BreakStmt::output(int level) {
     fprintf(yyout, "%*cBreakStmt\n", level, ' ');
 }
@@ -1191,21 +1235,6 @@ void ExprStmt::output(int level) {
     expr->output(level + 4);
 }
 
-void ImplictCastExpr::genCode() {
-    expr->genCode();
-    BasicBlock* bb = builder->getInsertBB();
-    Function* func = bb->getParent();
-    BasicBlock* trueBB = new BasicBlock(func);
-    BasicBlock* tempbb = new BasicBlock(func);
-    BasicBlock* falseBB = new BasicBlock(func);
-
-    new CmpInstruction(
-        CmpInstruction::NE, this->dst, this->expr->getOperand(),
-        new Operand(new ConstantSymbolEntry(TypeSystem::intType, 0)), bb);
-    this->trueList().push_back(
-        new CondBrInstruction(trueBB, tempbb, this->dst, bb));
-    this->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
-}
 
 bool FunctionDef::typeCheck(Type* retType) 
 {
