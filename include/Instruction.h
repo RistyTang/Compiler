@@ -22,7 +22,7 @@ class Instruction {
     Instruction* getPrev();
     virtual void output() const = 0;
 
-protected:
+   protected:
     unsigned instType;
     unsigned opcode;
     Instruction* prev;
@@ -45,7 +45,7 @@ protected:
     };
 };
 
-// 作为指令列表中的第一个，是无意义的指令
+// meaningless instruction, used as the head node of the instruction list.
 class DummyInstruction : public Instruction {
    public:
     DummyInstruction() : Instruction(-1, nullptr){};
@@ -115,7 +115,7 @@ class UncondBrInstruction : public Instruction {
     BasicBlock* getBranch();
 
    protected:
-    BasicBlock* branch;//跳转到的基本块branch
+    BasicBlock* branch;
 };
 
 // conditional branch
@@ -144,13 +144,12 @@ class RetInstruction : public Instruction {
     void output() const;
 };
 
-//函数调用指令
-class FuncCallInstruction : public Instruction {
+class CallInstruction : public Instruction {
    private:
     SymbolEntry* func;
 
    public:
-    FuncCallInstruction(Operand* dst,
+    CallInstruction(Operand* dst,
                     SymbolEntry* func,
                     std::vector<Operand*> params,
                     BasicBlock* insert_bb = nullptr);
@@ -171,5 +170,17 @@ class XorInstruction : public Instruction {
     void output() const;
 };
 
+class GepInstruction : public Instruction {
+   private:
+    bool first;
+
+   public:
+    GepInstruction(Operand* dst,
+                   Operand* arr,
+                   Operand* idx,
+                   BasicBlock* insert_bb = nullptr,
+                   bool first = false);
+    void output() const;
+};
 
 #endif

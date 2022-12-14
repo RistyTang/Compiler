@@ -57,8 +57,6 @@ class SymbolTable {
 
     Compiler should create constant symbol entry for literal constant '1'.
 */
-
-//常数符号表项
 class ConstantSymbolEntry : public SymbolEntry {
    private:
     int value;
@@ -95,7 +93,6 @@ class ConstantSymbolEntry : public SymbolEntry {
     | d        | LOCAL    |
     | e        | LOCAL +1 |
 */
-
 class IdentifierSymbolEntry : public SymbolEntry {
    private:
     enum { GLOBAL, PARAM, LOCAL };
@@ -132,7 +129,7 @@ class IdentifierSymbolEntry : public SymbolEntry {
     void setLabel() { label = SymbolTable::getLabel(); };
     void setAllZero() { allZero = true; };
     bool isAllZero() const { return allZero; };
-
+    std::string getName() {return this->name;} ;
     // You can add any function you need here.
 };
 

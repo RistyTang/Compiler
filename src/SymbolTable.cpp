@@ -3,7 +3,8 @@
 #include <sstream>
 #include "Type.h"
 
-bool SymbolEntry::setNext(SymbolEntry* se) {
+bool SymbolEntry::setNext(SymbolEntry* se) 
+{
     SymbolEntry* s = this;
     long unsigned int cnt =
         ((FunctionType*)(se->getType()))->getParamsType().size();
@@ -32,6 +33,7 @@ ConstantSymbolEntry::ConstantSymbolEntry(Type* type, int value)
     assert(type->isInt());
     this->value = value;
 }
+
 
 ConstantSymbolEntry::ConstantSymbolEntry(Type* type)
     : SymbolEntry(type, SymbolEntry::CONSTANT) {
@@ -133,19 +135,26 @@ SymbolTable::SymbolTable(SymbolTable* prev) {
     4. If you find the entry, return it.
     5. If you can't find it in all symbol tables, return nullptr.
 */
-SymbolEntry* SymbolTable::lookup(std::string name) {
+SymbolEntry* SymbolTable::lookup(std::string name) 
+{
     SymbolTable* table = this;
     while (table != nullptr)
-        if (table->symbolTable.find(name) != table->symbolTable.end()) {
+    {    
+        if (table->symbolTable.find(name) != table->symbolTable.end()) 
+        {
             return table->symbolTable[name];
-        } else {
+        } 
+        else 
+        {
             table = table->prev;
         }
+    }
     return nullptr;
 }
 
 // install the entry into current symbol table.
-bool SymbolTable::install(std::string name, SymbolEntry* entry) {
+bool SymbolTable::install(std::string name, SymbolEntry* entry) 
+{
     // 同时检查是否重定义
     if (this->symbolTable.find(name) != this->symbolTable.end()) {
         SymbolEntry* se = this->symbolTable[name];

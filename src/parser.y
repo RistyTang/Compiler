@@ -15,7 +15,10 @@
     std::stack<StmtNode*> whileStk;
     InitValueListExpr* top;
     int leftCnt = 0;
-    int whileCnt = 0;
+    int InWhileStmt = 0;
+    bool hasRet=true;//类型检查06：int函数无返回值
+    bool IsvoidFunc=false;//类型检查05：void函数有返回值
+    bool voidOp=false;//类型检查07：检查两端如果是函数的话是否为void类型
     #include <iostream>
 }
 
@@ -71,14 +74,16 @@ Stmt
     | EmptyStmt {$$ = $1;}
     | IfStmt {$$ = $1;}
     | WhileStmt {$$ = $1;}
-    | BreakStmt {
-        if(!whileCnt)
-            fprintf(stderr, "\'break\' statement not in while statement\n");
+    | BreakStmt 
+    {
+        if(!InWhileStmt)
+            fprintf(stderr, "非while语句内出现break\n");
         $$=$1;
     }
-    | ContinueStmt {
-        if(!whileCnt)
-            fprintf(stderr, "\'continue\' statement not in while statement\n");
+    | ContinueStmt 
+    {
+        if(!InWhileStmt)
+            fprintf(stderr, "非whie语句内出现continue\n");
         $$=$1;
     }
     | ReturnStmt {$$ = $1;}
@@ -86,26 +91,55 @@ Stmt
     | FuncDef {$$ = $1;}
     ;
 LVal
-    : ID {
+    : ID 
+    {
         SymbolEntry* se;
         se = identifiers->lookup($1);
-        if(se == nullptr)
-            fprintf(stderr, "identifier \"%s\" is undefined\n", (char*)$1);
+        //类型检查01：常变量使用前未声明
+        if(se==nullptr)
+        {
+            fprintf(stderr, "标识符 \"%s\" 使用前未声明\n", (char*)$1);
+            delete [](char*)$1;
+            assert(se != nullptr);
+        }
         $$ = new Id(se);
         delete []$1;
     }
-    | ID ArrayIndices{
+    | ID ArrayIndices
+    {
         SymbolEntry* se;
         se = identifiers->lookup($1);
+        //类型检查01：常变量使用前未声明
         if(se == nullptr)
-            fprintf(stderr, "identifier \"%s\" is undefined\n", (char*)$1);
+        {
+            fprintf(stderr, "标识符 \"%s\" 使用前未声明\n", (char*)$1);
+            delete [](char*)$1;
+            assert(se != nullptr);
+        }
         $$ = new Id(se, $2);
         delete []$1;
     }
     ; 
 AssignStmt
-    : LVal ASSIGN Exp SEMICOLON {
+    : LVal ASSIGN Exp SEMICOLON 
+    {
         $$ = new AssignStmt($1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1 = identifiers->lookup($3->getSymbolEntry()->toStr());
+        if(se1!=nullptr)
+        {
+            Type* temptype1=(FunctionType*)se1->getType();
+            if(temptype1->isFunc())
+            {
+                FunctionType* temp1=(FunctionType*)temptype1;
+                if(temp1->getRetType()==TypeSystem::voidType )
+                {
+                    fprintf(stderr,"操作符对象不能为void函数\n");
+                }
+            }
+            
+        }
     }
     ;
 ExprStmt
@@ -123,7 +157,6 @@ BlockStmt
         identifiers = new SymbolTable(identifiers);
     } 
       Stmts RBRACE {
-        // midrule actions https://www.gnu.org/software/bison/manual/html_node/Using-Midrule-Actions.html
         $$ = new CompoundStmt($3);
 
         SymbolTable* top = identifiers;
@@ -131,7 +164,6 @@ BlockStmt
         delete top;
     }
     | LBRACE RBRACE {
-        // 这里这个用加嘛 不确定
         $$ = new CompoundStmt();
     }
     ;
@@ -145,7 +177,7 @@ IfStmt
     ;
 WhileStmt
     : WHILE LPAREN Cond RPAREN {
-        whileCnt++;
+        InWhileStmt++;
         WhileStmt *whileNode = new WhileStmt($3);
         $<stmttype>$ = whileNode;
         whileStk.push(whileNode);
@@ -155,7 +187,7 @@ WhileStmt
         ((WhileStmt*)whileNode)->setStmt($6);
         $$=whileNode;
         whileStk.pop();
-        whileCnt--;
+        InWhileStmt--;
     }
     ;
 BreakStmt
@@ -169,10 +201,20 @@ ContinueStmt
     }
     ;
 ReturnStmt
-    : RETURN SEMICOLON {
+    : RETURN SEMICOLON 
+    {
         $$ = new ReturnStmt();
     }
-    | RETURN Exp SEMICOLON {
+    | RETURN Exp SEMICOLON 
+    {
+        //类型检查05：void函数携带返回值
+        if(IsvoidFunc)
+        {
+            fprintf(stderr,"void函数有返回值\n");
+            //assert(IsvoidFunc!=true);
+            IsvoidFunc=false;//恢复为false
+        }
+        hasRet=true;
         $$ = new ReturnStmt($2);
     }
     ;
@@ -182,7 +224,15 @@ Exp
     ;
 Cond
     :
-    LOrExp {$$ = $1;}
+    LOrExp 
+    {
+        //类型检查08：int->bool
+        if($1->getSymbolEntry()->getType()->toStr()=="i32")
+        {
+            fprintf(stderr, "条件表达式应为bool值。\n");
+        }
+        $$ = $1;
+    }
     ;
 PrimaryExp
     : LPAREN Exp RPAREN {
@@ -198,54 +248,196 @@ PrimaryExp
     ;
 UnaryExp 
     : PrimaryExp {$$ = $1;}
-    | ID LPAREN FuncRParams RPAREN {
+    | ID LPAREN FuncRParams RPAREN 
+    {
         SymbolEntry* se;
         se = identifiers->lookup($1);
+        //类型检查03：函数使用前未声明
         if(se == nullptr)
-            fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
+        {    
+            fprintf(stderr, "函数 \"%s\"未定义\n", (char*)$1);
+            //assert(1==0);
+        }
+        //类型检查03：形参实参个数不匹配——04需要区分同名不同参数的函数——如何区分
+        //一个设想——删除得到的，再加到最后？
+        int realcount=0;//实参个数
+        int formcount=0;//调用函数的形参个数
+        Node*temp=(Node*)$3;
+        while(temp)
+        {
+            realcount++;//实参个数
+            temp=temp->getNext();
+        }
+        //计算形参个数
+        Type* temptype=se->getType();
+        std::vector<Type*> params = ((FunctionType*)temptype)->getParamsType();
+        formcount=params.size();
+        if(formcount!=realcount)
+        {
+            fprintf(stderr,"所调用函数 \"%s\" 的形参实参个数不匹配\n",(char*)$1);
+            //assert(1==0);
+        }
         $$ = new FuncCallNode(se, $3);
     }
     | ID LPAREN RPAREN {
         SymbolEntry* se;
         se = identifiers->lookup($1);
+        //类型检查03：函数使用前未声明
         if(se == nullptr)
-            fprintf(stderr, "function \"%s\" is undefined\n", (char*)$1);
+        {    
+            fprintf(stderr, "函数 \"%s\" 未定义\n", (char*)$1);
+        }
         $$ = new FuncCallNode(se);
     }
-    | ADD UnaryExp {$$ = $2;}
+    | ADD UnaryExp {
+        $$ = $2;
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$2->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            }
+        }
+        }
     | SUB UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new OneOpExpr(se, OneOpExpr::SUB, $2);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$2->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            }
+        }
     }
     | NOT UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new OneOpExpr(se, OneOpExpr::NOT, $2);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$2->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            }
+        }
     }
     ;
 MulExp
-    : UnaryExp {$$ = $1;}
+    : UnaryExp 
+    {
+        //fprintf(stderr,"test\n");
+        $$ = $1;}
     | MulExp MUL UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::MUL, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | MulExp DIV UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::DIV, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | MulExp MOD UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::MOD, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     ;
 AddExp
     : MulExp {$$ = $1;}
-    | AddExp ADD MulExp {
+    | AddExp ADD MulExp 
+    {
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
+        
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
+
         $$ = new BinaryExpr(se, BinaryExpr::ADD, $1, $3);
+        
     }
     | AddExp SUB MulExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::SUB, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     ;
 RelExp
@@ -255,18 +447,74 @@ RelExp
     | RelExp LESS AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | RelExp LESSEQUAL AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESSEQUAL, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | RelExp GREATER AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | RelExp GREATEREQUAL AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATEREQUAL, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     ;
 EqExp
@@ -274,10 +522,38 @@ EqExp
     | EqExp EQUAL RelExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::EQUAL, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     | EqExp NOTEQUAL RelExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::NOTEQUAL, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     ;
 LAndExp
@@ -285,13 +561,43 @@ LAndExp
     | LAndExp AND EqExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::AND, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
     }
     ;
 LOrExp
     : LAndExp {$$ = $1;}
-    | LOrExp OR LAndExp {
+    | LOrExp OR LAndExp 
+    {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::OR, $1, $3);
+        //类型检查07：检查两端如果是函数的话是否为void类型
+        SymbolEntry* se1;
+        se1=$1->getSymbolEntry();
+        SymbolEntry* se2;
+        se2=$3->getSymbolEntry();
+        //fprintf(stderr,"test1\n");
+        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        {
+            //fprintf(stderr,"是函数\n");
+            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+            {               
+                fprintf(stderr,"操作符两端不能为void函数\n");
+            }
+        }
+
     }
     ;
 ConstExp
@@ -299,7 +605,8 @@ ConstExp
     ;
 FuncRParams 
     : Exp {$$ = $1;}
-    | FuncRParams COMMA Exp {
+    | FuncRParams COMMA Exp 
+    {
         $$ = $1;
         $$->setNext($3);
     }
@@ -307,8 +614,11 @@ Type
     : INT {
         $$ = TypeSystem::intType;
     }
-    | VOID {
+    | VOID 
+    {
         $$ = TypeSystem::voidType;
+        //void只会出现在函数定义中，所以此处无问题
+        IsvoidFunc=true;
     }
     ;
 DeclStmt
@@ -320,6 +630,7 @@ VarDeclStmt
     ;
 ConstDeclStmt
     : CONST Type ConstDefList SEMICOLON {
+        // 这里肯定还得区分一下 
         $$ = $3;
     }
     ;
@@ -341,13 +652,17 @@ VarDef
     : ID {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, se))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            assert(1==0);//中断运行
+        }
         $$ = new DeclStmt(new Id(se));
         delete []$1;
     }
-    //数组
-    | ID ArrayIndices {
+    | ID ArrayIndices 
+    {
         SymbolEntry* se;
         std::vector<int> vec;
         ExprNode* temp = $2;
@@ -369,22 +684,28 @@ VarDef
         ((IdentifierSymbolEntry*)se)->setAllZero();
         int *p = new int[type->getSize()];
         ((IdentifierSymbolEntry*)se)->setArrayValue(p);
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, se))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            assert(1==0);//中断运行
+        }
         $$ = new DeclStmt(new Id(se));
         delete []$1;
     }
     | ID ASSIGN InitVal {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, se))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
-        // 这里要不要存值不确定
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            //assert(1==0);//中断运行
+        }
         ((IdentifierSymbolEntry*)se)->setValue($3->getValue());
         $$ = new DeclStmt(new Id(se), $3);
         delete []$1;
     }
-    //数组类型赋初值
     | ID ArrayIndices ASSIGN {
         SymbolEntry* se;
         std::vector<int> vec;
@@ -412,8 +733,12 @@ VarDef
         ((IdentifierSymbolEntry*)$<se>4)->setArrayValue(arrayValue);
         if(((InitValueListExpr*)$5)->isEmpty())
             ((IdentifierSymbolEntry*)$<se>4)->setAllZero();
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, $<se>4))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            assert(1==0);//中断运行
+        }
         $$ = new DeclStmt(new Id($<se>4), $5);
         delete []$1;
     }
@@ -422,8 +747,12 @@ ConstDef
     : ID ASSIGN ConstInitVal {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, $1, identifiers->getLevel());
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, se))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            //assert(1==0);//中断运行
+        }
         identifiers->install($1, se);
         ((IdentifierSymbolEntry*)se)->setValue($3->getValue());
         $$ = new DeclStmt(new Id(se), $3);
@@ -454,8 +783,12 @@ ConstDef
     }
       ConstInitVal {
         ((IdentifierSymbolEntry*)$<se>4)->setArrayValue(arrayValue);
+        //类型检查02：常变量重定义
         if(!identifiers->install($1, $<se>4))
-            fprintf(stderr, "identifier \"%s\" is already defined\n", (char*)$1);
+        {    
+            fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
+            assert(1==0);//中断运行
+        }
         identifiers->install($1, $<se>4);
         $$ = new DeclStmt(new Id($<se>4), $5);
         delete []$1;
@@ -471,15 +804,18 @@ ArrayIndices
     }
     ;
 InitVal 
-    : Exp {
-        if(!$1->getType()->isInt()){
+    : AddExp 
+    {
+        if(!$1->getType()->isInt())
+        {
             fprintf(stderr,
                 "cannot initialize a variable of type \'int\' with an rvalue "
                 "of type \'%s\'\n",
                 $1->getType()->toStr().c_str());
         }
         $$ = $1;
-        if(!stk.empty()){
+        if(!stk.empty())
+        {
             arrayValue[idx++] = $1->getValue();
             Type* arrTy = stk.top()->getSymbolEntry()->getType();
             if(arrTy == TypeSystem::intType)
@@ -501,21 +837,21 @@ InitVal
                         break;
                     }
                 }
-        }         
+        }
+             
     }
     | LBRACE RBRACE {
         SymbolEntry* se;
         ExprNode* list;
-        if(stk.empty()){
-            // 如果只用一个{}初始化数组，那么栈一定为空
-            // 此时也没必要再加入栈了
+        if(stk.empty())
+        {
             memset(arrayValue, 0, arrayType->getSize());
             idx += arrayType->getSize() / TypeSystem::intType->getSize();
             se = new ConstantSymbolEntry(arrayType);
             list = new InitValueListExpr(se);
-        }else{
-            // 栈不空说明肯定不是只有{}
-            // 此时需要确定{}到底占了几个元素
+        }
+        else
+        {
             Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
             int len = type->getSize() / TypeSystem::intType->getSize();
             memset(arrayValue + idx, 0, type->getSize());
@@ -593,17 +929,15 @@ ConstInitVal
     | LBRACE RBRACE {
         SymbolEntry* se;
         ExprNode* list;
-        if(stk.empty()){
-            // 如果只用一个{}初始化数组，那么栈一定为空
-            // 此时也没必要再加入栈了
+        if(stk.empty())
+        {
             memset(arrayValue, 0, arrayType->getSize());
             idx += arrayType->getSize() / TypeSystem::intType->getSize();
             se = new ConstantSymbolEntry(arrayType);
             list = new InitValueListExpr(se);
-        }else
+        }
+        else
         {
-            // 栈不空说明肯定不是只有{}
-            // 此时需要确定{}到底占了几个元素
             Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
             int len = type->getSize() / TypeSystem::intType->getSize();
             memset(arrayValue + idx, 0, type->getSize());
@@ -665,10 +999,17 @@ ConstInitValList
         $$ = $1;
     }
     ;
+//这个CFG只可能出现在函数声明时
 FuncDef
     :
-    Type ID {
+    Type ID 
+    {
         identifiers = new SymbolTable(identifiers);
+        //函数声明时假设为false
+        if($1->isInt())
+        {
+            hasRet=false;
+        }
     }
     LPAREN MaybeFuncFParams RPAREN {
         Type* funcType;
@@ -682,17 +1023,27 @@ FuncDef
         }
         funcType = new FunctionType($1, vec, vec1);
         SymbolEntry* se = new IdentifierSymbolEntry(funcType, $2, identifiers->getPrev()->getLevel());
-        if(!identifiers->getPrev()->install($2, se)){
-            fprintf(stderr, "redefinition of \'%s %s\'\n", $2, se->getType()->toStr().c_str());
+        //类型检查04：函数重定义
+        if(!identifiers->getPrev()->install($2, se))
+        {
+            fprintf(stderr, "函数\'%s\'重定义\n", (char*)$2);
         }
         $<se>$ = se; 
     } 
-    BlockStmt {
+    BlockStmt 
+    {
         $$ = new FunctionDef($<se>7, (DeclStmt*)$5, $8);
         SymbolTable* top = identifiers;
         identifiers = identifiers->getPrev();
         delete top;
         delete []$2;
+        //翻译完毕后即可检查是否有返回值
+        if(hasRet==false)
+        {
+            fprintf(stderr, "int型函数 \" %s \" 缺少返回值\n",(char*)$2);
+            //恢复原值
+            hasRet=true;
+        }
     }
     ;
 MaybeFuncFParams

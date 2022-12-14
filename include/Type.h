@@ -22,28 +22,9 @@ class Type {
     bool isPtr() const { return kind == PTR; };
     bool isArray() const { return kind == ARRAY; };
     bool isBool() const {return kind == BOOL; };
-    void setKind(int kinds) { this->kind = kinds; };
     int getKind() const { return kind; };
     int getSize() const { return size; };
-};
-
-//int类型
-class IntType : public Type {
-   private:
-    bool constant;
-
-   public:
-    IntType(int size, bool constant = false)
-        : Type(Type::INT, size), constant(constant){};
-    std::string toStr();
-    bool isConst() const { return constant; };
-};
-
-//void类型
-class VoidType : public Type {
-   public:
-    VoidType() : Type(Type::VOID){};
-    std::string toStr();
+    void setKind(int m) { this->kind=m; };
 };
 
 //bool类型
@@ -55,7 +36,23 @@ public:
     Type* getrettype(){return NULL;}
 };
 
-//函数类型
+class IntType : public Type {
+   private:
+    bool constant;
+
+   public:
+    IntType(int size, bool constant = false)
+        : Type(Type::INT, size), constant(constant){};
+    std::string toStr();
+    bool isConst() const { return constant; };
+};
+
+class VoidType : public Type {
+   public:
+    VoidType() : Type(Type::VOID){};
+    std::string toStr();
+};
+
 class FunctionType : public Type {
    private:
     Type* returnType;
@@ -79,7 +76,6 @@ class FunctionType : public Type {
     std::string toStr();
 };
 
-//数组类型
 class ArrayType : public Type {
    private:
     Type* elementType;
@@ -103,7 +99,6 @@ class ArrayType : public Type {
     Type* getArrayType() const { return arrayType; };
 };
 
-//指针类型
 class PointerType : public Type {
    private:
     Type* valueType;
@@ -126,6 +121,7 @@ class TypeSystem {
     static Type* intType;
     static Type* voidType;
     static Type* boolType;
+    static Type* constIntType;
 };
 
 #endif

@@ -39,6 +39,5 @@ int main()
     if (i0 == !i1 && i3 < i3 || i4 >= i4) { putch(74); }
     if (i0 == !i1 || i3 < i3 && i4 >= i4) putch(75);
     putch(10);
-
     return 0;
 }

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <sstream>
 
+
 IntType TypeSystem::commonInt = IntType(32);
 IntType TypeSystem::commonBool = IntType(1);
 VoidType TypeSystem::commonVoid = VoidType();
@@ -16,6 +17,14 @@ std::string IntType::toStr() {
         buffer << "i";
     else
         buffer << "i";
+    buffer << size;
+    return buffer.str();
+}
+
+std::string BoolType::toStr() 
+{
+    //仿照int？
+    std::ostringstream buffer;
     buffer << size;
     return buffer.str();
 }

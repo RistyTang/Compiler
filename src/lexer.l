@@ -20,6 +20,7 @@ DECIMIAL ([1-9][0-9]*|0)
 OCTAL (0[0-7]+)
 HEXADECIMAL (0[xX][0-9A-Fa-f]+)
 ID [[:alpha:]_][[:alpha:][:digit:]_]*
+STRING \".*\"
 EOL (\r\n|\n|\r)
 WHITE [\t ]
 BLOCKCOMMENTBEGIN \/\*
@@ -361,6 +362,7 @@ LINECOMMENT \/\/[^\n]*
     st->install(yytext, se);
     return ID;
 }
+
 {ID} {
     if(dump_tokens)
         DEBUG_FOR_LAB4(yytext);
@@ -369,6 +371,15 @@ LINECOMMENT \/\/[^\n]*
     strcpy(lexeme, yytext);
     yylval.strtype = lexeme;
     return ID;
+}
+{STRING} {
+    if(dump_tokens)
+        DEBUG_FOR_LAB4(yytext);
+    char* lexeme;
+    lexeme = new char[strlen(yytext) + 1];
+    strcpy(lexeme, yytext);
+    yylval.strtype = lexeme;
+    return STRING;
 }
 <*>{EOL} {
     chars += strlen(yytext);

@@ -1,5 +1,4 @@
 /* The operand's type cannnt be void */
-
 void func1(int a)
 {
 	a = a + 1;
@@ -16,6 +15,8 @@ void func2(int b)
 
 int main()
 {
-	int ret = func1(1) + func(2);
+	//操作符的两端为void类型
+	//func函数未定义
+	int ret = func1(1) + func2(2);
 	return ret;
 }

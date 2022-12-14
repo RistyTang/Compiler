@@ -154,7 +154,7 @@ void CmpInstruction::output() const {
 
 UncondBrInstruction::UncondBrInstruction(BasicBlock* to, BasicBlock* insert_bb)
     : Instruction(UNCOND, insert_bb) {
-    branch = to;//要跳转的基本块为to
+    branch = to;
 }
 
 void UncondBrInstruction::output() const {
@@ -317,7 +317,7 @@ void StoreInstruction::output() const {
             src.c_str(), dst_type.c_str(), dst.c_str());
 }
 
-FuncCallInstruction::FuncCallInstruction(Operand* dst,
+CallInstruction::CallInstruction(Operand* dst,
                                  SymbolEntry* func,
                                  std::vector<Operand*> params,
                                  BasicBlock* insert_bb)
@@ -331,7 +331,7 @@ FuncCallInstruction::FuncCallInstruction(Operand* dst,
     }
 }
 
-void FuncCallInstruction::output() const {
+void CallInstruction::output() const {
     fprintf(yyout, "  ");
     if (operands[0])
         fprintf(yyout, "%s = ", operands[0]->toStr().c_str());
@@ -379,4 +379,38 @@ void XorInstruction::output() const {
     Operand* src = operands[1];
     fprintf(yyout, "  %s = xor %s %s, true\n", dst->toStr().c_str(),
             src->getType()->toStr().c_str(), src->toStr().c_str());
+}
+
+GepInstruction::GepInstruction(Operand* dst,
+                               Operand* arr,
+                               Operand* idx,
+                               BasicBlock* insert_bb,
+                               bool first)
+    : Instruction(GEP, insert_bb), first(first) {
+    operands.push_back(dst);
+    operands.push_back(arr);
+    operands.push_back(idx);
+    dst->setDef(this);
+    arr->addUse(this);
+    idx->addUse(this);
+}
+
+void GepInstruction::output() const {
+    Operand* dst = operands[0];
+    Operand* arr = operands[1];
+    Operand* idx = operands[2];
+    std::string arrType = arr->getType()->toStr();
+    // Type* type = ((PointerType*)(arr->getType()))->getType();
+    // ArrayType* type1 = (ArrayType*)(((ArrayType*)type)->getArrayType());
+    // if (type->isInt() || (type1 && type1->getLength() == -1))
+    if(first)
+        fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s\n",
+                dst->toStr().c_str(),
+                arrType.substr(0, arrType.size() - 1).c_str(), arrType.c_str(),
+                arr->toStr().c_str(), idx->toStr().c_str());
+    else
+        fprintf(
+            yyout, "  %s = getelementptr inbounds %s, %s %s, i32 0, i32 %s\n",
+            dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
+            arrType.c_str(), arr->toStr().c_str(), idx->toStr().c_str());
 }
