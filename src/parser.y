@@ -226,11 +226,13 @@ Cond
     :
     LOrExp 
     {
+        
         //类型检查08：int->bool
         if($1->getSymbolEntry()->getType()->toStr()=="i32")
         {
             fprintf(stderr, "条件表达式应为bool值。\n");
         }
+        
         $$ = $1;
     }
     ;
@@ -295,12 +297,15 @@ UnaryExp
         SymbolEntry* se1;
         se1=$2->getSymbolEntry();
         //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                //fprintf(stderr,"是函数\n");
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {               
+                    fprintf(stderr,"一元操作符对象不能为void函数\n");
+                }
             }
         }
         }
@@ -311,12 +316,15 @@ UnaryExp
         SymbolEntry* se1;
         se1=$2->getSymbolEntry();
         //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                //fprintf(stderr,"是函数\n");
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {               
+                    fprintf(stderr,"一元操作符对象不能为void函数\n");
+                }
             }
         }
     }
@@ -327,14 +335,18 @@ UnaryExp
         SymbolEntry* se1;
         se1=$2->getSymbolEntry();
         //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"一元操作符对象不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                //fprintf(stderr,"是函数\n");
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {               
+                    fprintf(stderr,"一元操作符对象不能为void函数\n");
+                }
             }
         }
+        
     }
     ;
 MulExp
@@ -350,13 +362,24 @@ MulExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -368,13 +391,24 @@ MulExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -386,13 +420,24 @@ MulExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -406,13 +451,24 @@ AddExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
         
@@ -429,13 +485,24 @@ AddExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -452,13 +519,24 @@ RelExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -470,13 +548,24 @@ RelExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -488,13 +577,24 @@ RelExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -506,13 +606,24 @@ RelExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -527,13 +638,24 @@ EqExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
@@ -545,36 +667,59 @@ EqExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
     }
     ;
 LAndExp
     : EqExp {$$ = $1;}
-    | LAndExp AND EqExp {
-        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
-        $$ = new BinaryExpr(se, BinaryExpr::AND, $1, $3);
+    | LAndExp AND EqExp // &&操作符
+    {
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
+        SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
+        $$ = new BinaryExpr(se, BinaryExpr::AND, $1, $3);
     }
     ;
 LOrExp
@@ -588,16 +733,26 @@ LOrExp
         se1=$1->getSymbolEntry();
         SymbolEntry* se2;
         se2=$3->getSymbolEntry();
-        //fprintf(stderr,"test1\n");
-        if(((se1->getType()))->isFunc()||((se2->getType()))->isFunc())
+        if(se1!=nullptr)
         {
-            //fprintf(stderr,"是函数\n");
-            if(((FunctionType*)(se1->getType()))->getRetType()->isVoid()||((FunctionType*)(se2->getType()))->getRetType()->isVoid())
-            {               
-                fprintf(stderr,"操作符两端不能为void函数\n");
+            if(((se1->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se1->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
+            }  
+        }
+        if(se2!=nullptr)
+        {
+            if(((se2->getType()))->isFunc())
+            {
+                if(((FunctionType*)(se2->getType()))->getRetType()->isVoid())
+                {
+                    fprintf(stderr,"操作符两端不能为void函数\n");
+                }
             }
         }
-
     }
     ;
 ConstExp
