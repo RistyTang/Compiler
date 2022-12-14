@@ -229,6 +229,7 @@ class StmtNode : public Node {
     bool isIf() const { return kind == IF; };
     virtual bool typeCheck(Type* retType = nullptr) = 0;
 };
+
 class CompoundStmt : public StmtNode {
    private:
     StmtNode* stmt;
@@ -287,11 +288,6 @@ class IfStmt : public StmtNode {
    public:
     IfStmt(ExprNode* cond, StmtNode* thenStmt) : cond(cond), thenStmt(thenStmt) 
     {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) 
-        {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
@@ -305,12 +301,8 @@ class IfElseStmt : public StmtNode {
     StmtNode* elseStmt;
 
    public:
-    IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt)
-        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
+    IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt) : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) 
+    {
     };
     void output(int level);
     bool typeCheck(Type* retType = nullptr);
@@ -321,14 +313,11 @@ class WhileStmt : public StmtNode {
    private:
     ExprNode* cond;
     StmtNode* stmt;
-    BasicBlock* cond_bb;
-    BasicBlock* end_bb;
+    BasicBlock* cond_bb;//每次循环都要验证，因此新做一个bb
+    BasicBlock* end_bb;//为break语句设置
    public:
-    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
+    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) 
+    {
     };
     void setStmt(StmtNode* stmt){this->stmt = stmt;};
     void output(int level);
@@ -348,7 +337,8 @@ class BreakStmt : public StmtNode {
     void genCode();
 };
 
-class ContinueStmt : public StmtNode {
+class ContinueStmt : public StmtNode 
+{
     private:
     StmtNode *whileStmt;
    public:
