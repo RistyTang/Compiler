@@ -50,7 +50,7 @@ private:
     int kind;
 
 protected:
-    enum { EXPR, INITVALUELISTEXPR, IMPLICTCASTEXPR, ONEOPEXPR };
+    enum { EXPR, INITVALUELISTEXPR, ONEOPEXPR };
     Type* type;
     SymbolEntry* symbolEntry;
     Operand* dst;  // The result of the subtree is stored into dst.
@@ -62,7 +62,6 @@ public:
     virtual int getValue() { return -1; };
     bool isExpr() const { return kind == EXPR; };
     bool isInitValueListExpr() const { return kind == INITVALUELISTEXPR; };
-    bool isImplictCastExpr() const { return kind == IMPLICTCASTEXPR; };
     //是一元运算
     bool isOneOpExpr() const { return kind == ONEOPEXPR; };
     SymbolEntry* getSymbolEntry() { return this->symbolEntry; };
@@ -121,7 +120,9 @@ class OneOpExpr : public ExprNode {
     void setType(Type* type) { this->type = type; }
 };
 
-class FuncCallNode : public ExprNode {
+//函数调用节点
+class FuncCallNode : public ExprNode 
+{
    private:
     ExprNode* param;
 
@@ -198,26 +199,10 @@ class InitValueListExpr : public ExprNode {
     void fill();
 };
 
-// 仅用于int2bool
-class ImplictCastExpr : public ExprNode {
-   private:
-    ExprNode* expr;
-
-   public:
-    ImplictCastExpr(ExprNode* expr)
-        : ExprNode(nullptr, IMPLICTCASTEXPR), expr(expr) 
-    {
-        type = TypeSystem::boolType;
-        dst = new Operand(
-            new TemporarySymbolEntry(type, SymbolTable::getLabel()));
-    };
-    void output(int level);
-    ExprNode* getExpr() const { return expr; };
-    bool typeCheck(Type* retType = nullptr) { return false; };
-    void genCode();
-};
-
-class StmtNode : public Node {
+//建立这个class的作用是为了把stmt类型转化为node
+//因此能够打印成节点
+class StmtNode : public Node 
+{
    private:
     int kind;
 
@@ -227,13 +212,18 @@ class StmtNode : public Node {
    public:
     StmtNode(int kind = -1) : kind(kind){};
     bool isIf() const { return kind == IF; };
+    bool isIfElse() const { return kind==IFELSE; }
+    bool isWhile() const { return kind == WHILE; }
+    bool isCompound() const { return kind == COMPOUND; }
+    bool isReturn() const {return kind == RETURN; }
     virtual bool typeCheck(Type* retType = nullptr) = 0;
 };
 
-class CompoundStmt : public StmtNode {
+//复合语句
+class CompoundStmt : public StmtNode 
+{
    private:
     StmtNode* stmt;
-
    public:
     CompoundStmt(StmtNode* stmt = nullptr) : stmt(stmt){};
     void output(int level);
@@ -241,7 +231,8 @@ class CompoundStmt : public StmtNode {
     void genCode();
 };
 
-class SeqNode : public StmtNode {
+class SeqNode : public StmtNode 
+{
    private:
     StmtNode *stmt1, *stmt2;
 
@@ -252,13 +243,15 @@ class SeqNode : public StmtNode {
     void genCode();
 };
 
-class DeclStmt : public StmtNode {
+class DeclStmt : public StmtNode 
+{
    private:
     Id* id;
     ExprNode* expr;
 
    public:
-    DeclStmt(Id* id, ExprNode* expr = nullptr) : id(id) {
+    DeclStmt(Id* id, ExprNode* expr = nullptr) : id(id) 
+    {
         if (expr) {
             this->expr = expr;
             if (expr->isInitValueListExpr())

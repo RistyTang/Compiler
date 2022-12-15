@@ -43,11 +43,7 @@ Instruction* Instruction::getPrev() {
     return prev;
 }
 
-BinaryInstruction::BinaryInstruction(unsigned opcode,
-                                     Operand* dst,
-                                     Operand* src1,
-                                     Operand* src2,
-                                     BasicBlock* insert_bb)
+BinaryInstruction::BinaryInstruction(unsigned opcode, Operand* dst, Operand* src1, Operand* src2, BasicBlock* insert_bb)
     : Instruction(BINARY, insert_bb) {
     this->opcode = opcode;
     operands.push_back(dst);
@@ -95,34 +91,32 @@ void BinaryInstruction::output() const {
             type.c_str(), s2.c_str(), s3.c_str());
 }
 
-CmpInstruction::CmpInstruction(unsigned opcode,
-                               Operand* dst,
-                               Operand* src1,
-                               Operand* src2,
-                               BasicBlock* insert_bb)
-    : Instruction(CMP, insert_bb) {
+CmpInstruction::CmpInstruction(unsigned opcode,Operand* dst,Operand* src1,Operand* src2,BasicBlock* insert_bb) : Instruction(CMP, insert_bb) 
+{
     this->opcode = opcode;
     operands.push_back(dst);
     operands.push_back(src1);
     operands.push_back(src2);
     dst->setDef(this);
-    src1->addUse(this);
-    src2->addUse(this);
+    if(src1) src1->addUse(this);
+    if(src2) src2->addUse(this);
 }
 
 CmpInstruction::~CmpInstruction() {
     operands[0]->setDef(nullptr);
     if (operands[0]->usersNum() == 0)
         delete operands[0];
-    operands[1]->removeUse(this);
-    operands[2]->removeUse(this);
+    if(operands[1])operands[1]->removeUse(this);
+    if(operands[2])operands[2]->removeUse(this);
 }
 
 void CmpInstruction::output() const {
     std::string s1, s2, s3, op, type;
     s1 = operands[0]->toStr();
-    s2 = operands[1]->toStr();
-    s3 = operands[2]->toStr();
+    if(operands[1])s2 = operands[1]->toStr();
+    else s2="0";
+    if(operands[2])s3 = operands[2]->toStr();
+    else s3="0";
     type = operands[1]->getType()->toStr();
     switch (opcode) {
         case E:
@@ -147,49 +141,37 @@ void CmpInstruction::output() const {
             op = "";
             break;
     }
-
-    fprintf(yyout, "  %s = icmp %s %s %s, %s\n", s1.c_str(), op.c_str(),
-            type.c_str(), s2.c_str(), s3.c_str());
+    fprintf(yyout, "  %s = icmp %s %s %s, %s\n", s1.c_str(), op.c_str(), type.c_str(), s2.c_str(), s3.c_str());
 }
 
-UncondBrInstruction::UncondBrInstruction(BasicBlock* to, BasicBlock* insert_bb)
-    : Instruction(UNCOND, insert_bb) {
-    branch = to;
-}
-
-void UncondBrInstruction::output() const {
-    fprintf(yyout, "  br label %%B%d\n", branch->getNo());
-}
-
-void UncondBrInstruction::setBranch(BasicBlock* bb) {
-    branch = bb;
-}
-
-BasicBlock* UncondBrInstruction::getBranch() {
-    return branch;
-}
-
-CondBrInstruction::CondBrInstruction(BasicBlock* true_branch,
-                                     BasicBlock* false_branch,
-                                     Operand* cond,
-                                     BasicBlock* insert_bb)
-    : Instruction(COND, insert_bb) {
+//条件分支
+CondBrInstruction::CondBrInstruction(BasicBlock* true_branch, BasicBlock* false_branch, Operand* cond, BasicBlock* insert_bb) : Instruction(COND, insert_bb) 
+{
     this->true_branch = true_branch;
     this->false_branch = false_branch;
     cond->addUse(this);
     operands.push_back(cond);
 }
 
-CondBrInstruction::~CondBrInstruction() {
+CondBrInstruction::~CondBrInstruction() 
+{
     operands[0]->removeUse(this);
 }
 
-void CondBrInstruction::output() const {
+void CondBrInstruction::output() const 
+{
     std::string cond, type;
     cond = operands[0]->toStr();
     type = operands[0]->getType()->toStr();
-    int true_label = true_branch->getNo();
-    int false_label = false_branch->getNo();
+    int true_label,false_label;
+    if(true_branch)
+    {
+        true_label = true_branch->getNo();
+    }
+    if(false_branch)
+    {
+        false_label = false_branch->getNo();
+    }
     fprintf(yyout, "  br %s %s, label %%B%d, label %%B%d\n", type.c_str(),
             cond.c_str(), true_label, false_label);
 }
@@ -209,6 +191,25 @@ void CondBrInstruction::setTrueBranch(BasicBlock* bb) {
 BasicBlock* CondBrInstruction::getTrueBranch() {
     return true_branch;
 }
+
+UncondBrInstruction::UncondBrInstruction(BasicBlock* to, BasicBlock* insert_bb)
+    : Instruction(UNCOND, insert_bb) {
+    branch = to;
+}
+
+void UncondBrInstruction::output() const {
+    fprintf(yyout, "  br label %%B%d\n", branch->getNo());
+}
+
+void UncondBrInstruction::setBranch(BasicBlock* bb) {
+    branch = bb;
+}
+
+BasicBlock* UncondBrInstruction::getBranch() {
+    return branch;
+}
+
+
 
 RetInstruction::RetInstruction(Operand* src, BasicBlock* insert_bb)
     : Instruction(RET, insert_bb) {
@@ -347,7 +348,7 @@ void CallInstruction::output() const {
     fprintf(yyout, ")\n");
 }
 
-ZextInstruction::ZextInstruction(Operand* dst,
+ExtensionInstruction::ExtensionInstruction(Operand* dst,
                                  Operand* src,
                                  BasicBlock* insert_bb)
     : Instruction(ZEXT, insert_bb) {
@@ -357,7 +358,7 @@ ZextInstruction::ZextInstruction(Operand* dst,
     src->addUse(this);
 }
 
-void ZextInstruction::output() const {
+void ExtensionInstruction::output() const {
     Operand* dst = operands[0];
     Operand* src = operands[1];
     fprintf(yyout, "  %s = zext %s %s to i32\n", dst->toStr().c_str(),

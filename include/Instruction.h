@@ -156,9 +156,11 @@ class CallInstruction : public Instruction {
     void output() const;
 };
 
-class ZextInstruction : public Instruction {
+//%6 = zext i1 %5 to i32
+//将1位的bool扩展到32位
+class ExtensionInstruction : public Instruction {
    public:
-    ZextInstruction(Operand* dst,
+    ExtensionInstruction(Operand* dst,
                     Operand* src,
                     BasicBlock* insert_bb = nullptr);
     void output() const;
