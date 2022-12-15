@@ -22,8 +22,8 @@ private:
     Node* next;//用于标识符列表的处理
 //以下protected变量的意义是什么？
 protected:
-    std::vector<Instruction*> true_list;//跳转为真的跳转指令的列表
-    std::vector<Instruction*> false_list;//跳转false的跳转指令的列表
+    std::vector<Instruction*> true_list;//跳转为真且跳转地址相同的跳转指令的链表
+    std::vector<Instruction*> false_list;//跳转false的跳转指令的链表
     static IRBuilder* builder;
     //回填实现
     void backPatch(std::vector<Instruction*>& list, BasicBlock* bb);

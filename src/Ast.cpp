@@ -32,6 +32,7 @@ void Node::setNext(Node* node)
     }
 }
 
+//回填技术的具体实现
 void Node::backPatch(std::vector<Instruction*>& list, BasicBlock* bb) 
 {
     for (auto& inst : list) 
@@ -91,6 +92,7 @@ BinaryExpr::BinaryExpr(SymbolEntry* se,int op,ExprNode* expr1,ExprNode* expr2) :
             }
         }
         //在这里需要把bool类型转换为int类型
+        /*
         else
         {
             //expr1转为int
@@ -104,13 +106,13 @@ BinaryExpr::BinaryExpr(SymbolEntry* se,int op,ExprNode* expr1,ExprNode* expr2) :
 
             }
         }
+        */
     } 
     else
     {    
         type = TypeSystem::intType;
     }
 };
-
 
 bool BinaryExpr::typeCheck(Type* retType) 
 {
@@ -219,7 +221,6 @@ void BinaryExpr::genCode()
         Operand* src1 = expr1->getOperand();
         Operand* src2 = expr2->getOperand();
         //如果有一方是bool类型，使用一个扩展语句
-        /*
         if (src1->getType()->getSize() == 1) 
         {
             Operand* dst = new Operand(new TemporarySymbolEntry(
@@ -233,7 +234,6 @@ void BinaryExpr::genCode()
             new ExtensionInstruction(dst, src2, bb);
             src2 = dst;
         }
-        */
         int cmpopcode;
         switch (op) {
             case LESS:
@@ -293,8 +293,6 @@ void BinaryExpr::genCode()
         new BinaryInstruction(opcode, dst, src1, src2, bb);
     }
 }
-
-
 
 void BinaryExpr::output(int level) {
     std::string op_str;

@@ -47,8 +47,8 @@
 %token CONST
 %token RETURN CONTINUE BREAK
 
-%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefList VarDef ConstDef VarDefList FuncFParam FuncFParams MaybeFuncFParams EmptyStmt
-%type<exprtype> Exp AddExp Cond LOrExp PrimaryExp LVal RelExp LAndExp MulExp ConstExp EqExp UnaryExp InitVal ConstInitVal InitValList ConstInitValList FuncArrayIndices FuncRParams ArrayIndices
+%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefs VarDef ConstDef VarDefs FuncFParam FuncFParams MaybeFuncFParams EmptyStmt
+%type<exprtype> Exp AddExp Cond SeventhExp PrimaryExp LVal FourthExp SixthExp MulExp ConstExp FifthExp UnaryExp InitVal ConstInitVal InitValList ConstInitValList FuncArrayIndices FuncRParams ArrayIndices
 %type<type> Type
 
 %precedence THEN
@@ -175,6 +175,7 @@ IfStmt
         $$ = new IfElseStmt($3, $5, $7);
     }
     ;
+//新增while语句
 WhileStmt
     : WHILE LPAREN Cond RPAREN {
         InWhileStmt++;
@@ -218,13 +219,14 @@ ReturnStmt
         $$ = new ReturnStmt($2);
     }
     ;
+//表达式，类别为exprnode
 Exp
     :
     AddExp {$$ = $1;}
     ;
 Cond
     :
-    LOrExp 
+    SeventhExp 
     {
         
         //类型检查08：int->bool
@@ -507,11 +509,11 @@ AddExp
         }
     }
     ;
-RelExp
+FourthExp
     : AddExp {
         $$ = $1;
     }
-    | RelExp LESS AddExp {
+    | FourthExp LESS AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -540,7 +542,7 @@ RelExp
             }
         }
     }
-    | RelExp LESSEQUAL AddExp {
+    | FourthExp LESSEQUAL AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::LESSEQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -569,7 +571,7 @@ RelExp
             }
         }
     }
-    | RelExp GREATER AddExp {
+    | FourthExp GREATER AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -598,7 +600,7 @@ RelExp
             }
         }
     }
-    | RelExp GREATEREQUAL AddExp {
+    | FourthExp GREATEREQUAL AddExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::GREATEREQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -628,9 +630,9 @@ RelExp
         }
     }
     ;
-EqExp
-    : RelExp {$$ = $1;}
-    | EqExp EQUAL RelExp {
+FifthExp
+    : FourthExp {$$ = $1;}
+    | FifthExp EQUAL FourthExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::EQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -659,7 +661,7 @@ EqExp
             }
         }
     }
-    | EqExp NOTEQUAL RelExp {
+    | FifthExp NOTEQUAL FourthExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::NOTEQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -689,9 +691,9 @@ EqExp
         }
     }
     ;
-LAndExp
-    : EqExp {$$ = $1;}
-    | LAndExp AND EqExp // &&操作符
+SixthExp
+    : FifthExp {$$ = $1;}
+    | SixthExp AND FifthExp // &&操作符
     {
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
@@ -722,10 +724,12 @@ LAndExp
         $$ = new BinaryExpr(se, BinaryExpr::AND, $1, $3);
     }
     ;
-LOrExp
-    : LAndExp {$$ = $1;}
-    | LOrExp OR LAndExp 
+SeventhExp
+    : SixthExp {$$ = $1;}
+    | SeventhExp OR SixthExp 
     {
+        //表达式都为临时符号表项
+        // ||
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
         $$ = new BinaryExpr(se, BinaryExpr::OR, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
@@ -765,6 +769,7 @@ FuncRParams
         $$ = $1;
         $$->setNext($3);
     }
+//类型识别，之后需要新增float
 Type
     : INT {
         $$ = TypeSystem::intType;
@@ -776,33 +781,38 @@ Type
         IsvoidFunc=true;
     }
     ;
+//声明语句
 DeclStmt
     : VarDeclStmt {$$ = $1;}
     | ConstDeclStmt {$$ = $1;}
     ;
+//变量声明语句
 VarDeclStmt
-    : Type VarDefList SEMICOLON {$$ = $2;}
+    : Type VarDefs SEMICOLON {$$ = $2;}
     ;
+//常量声明语句
 ConstDeclStmt
-    : CONST Type ConstDefList SEMICOLON {
-        // 这里肯定还得区分一下 
+    : CONST Type ConstDefs SEMICOLON {
         $$ = $3;
     }
     ;
-VarDefList
-    : VarDefList COMMA VarDef {
+//多个变量
+VarDefs
+    : VarDefs COMMA VarDef {
         $$ = $1;
         $1->setNext($3);
     } 
     | VarDef {$$ = $1;}
     ;
-ConstDefList
-    : ConstDefList COMMA ConstDef {
+//多个常量
+ConstDefs
+    : ConstDefs COMMA ConstDef {
         $$ = $1;
         $1->setNext($3);
     }
     | ConstDef {$$ = $1;}
     ;
+//单个变量 原理与常量相同，但表项类别为identifier
 VarDef
     : ID {
         SymbolEntry* se;
@@ -898,6 +908,7 @@ VarDef
         delete []$1;
     }
     ;
+//单个常量
 ConstDef
     : ID ASSIGN ConstInitVal {
         SymbolEntry* se;
