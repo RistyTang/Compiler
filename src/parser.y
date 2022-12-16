@@ -47,8 +47,14 @@
 %token CONST
 %token RETURN CONTINUE BREAK
 
-%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef ConstDeclStmt VarDeclStmt ConstDefs VarDef ConstDef VarDefs FuncFParam FuncFParams MaybeFuncFParams EmptyStmt
-%type<exprtype> Exp AddExp Cond SeventhExp PrimaryExp LVal FourthExp SixthExp MulExp ConstExp FifthExp UnaryExp InitVal ConstInitVal InitValList ConstInitValList FuncArrayIndices FuncRParams ArrayIndices
+%type<stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt IfStmt WhileStmt 
+%type<stmttype> BreakStmt ContinueStmt ReturnStmt DeclStmt FuncDef 
+%type<stmttype> ConstDeclStmt VarDeclStmt ConstDefs VarDef ConstDef VarDefs 
+%type<stmttype> FuncFParam FuncFParams FuncFormalParams
+%type<exprtype> Exp AddExp Cond SeventhExp PrimaryExp LVal 
+%type<exprtype> FourthExp SixthExp MulExp ConstExp FifthExp UnaryExp 
+%type<exprtype> InitVal ConstInitVal InitValList ConstInitValList 
+%type<exprtype> FuncArrayIndices FuncActualParams ArrayIndices
 %type<type> Type
 
 %precedence THEN
@@ -61,7 +67,9 @@ Program
     ;
 Stmts
     : Stmt {$$=$1;}
-    | Stmts Stmt{
+    | Stmts Stmt
+    {
+        //两个及以上的语句
         $$ = new SeqNode($1, $2);
     }
     ;
@@ -71,7 +79,6 @@ Stmt
     }
     | ExprStmt {$$ = $1;}
     | BlockStmt {$$=$1;}
-    | EmptyStmt {$$ = $1;}
     | IfStmt {$$ = $1;}
     | WhileStmt {$$ = $1;}
     | BreakStmt 
@@ -89,6 +96,10 @@ Stmt
     | ReturnStmt {$$ = $1;}
     | DeclStmt {$$ = $1;}
     | FuncDef {$$ = $1;}
+    | SEMICOLON 
+    {
+        $$ = new EmptyStmt();
+    }
     ;
 LVal
     : ID 
@@ -126,7 +137,7 @@ AssignStmt
         $$ = new AssignStmt($1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1 = identifiers->lookup($3->getSymbolEntry()->toStr());
+        se1 = identifiers->lookup($3->getSymPtr()->toStr());
         if(se1!=nullptr)
         {
             Type* temptype1=(FunctionType*)se1->getType();
@@ -142,16 +153,13 @@ AssignStmt
         }
     }
     ;
+// 单个/多个表达式语句，主要用处是把stmt转化为expr
 ExprStmt
     : Exp SEMICOLON {
         $$ = new ExprStmt($1);
     }
     ;
-EmptyStmt
-    : SEMICOLON {
-        $$ = new EmptyStmt();
-    }
-    ;
+//语句块
 BlockStmt
     : LBRACE {
         identifiers = new SymbolTable(identifiers);
@@ -163,7 +171,9 @@ BlockStmt
         identifiers = identifiers->getPrev();
         delete top;
     }
-    | LBRACE RBRACE {
+    | LBRACE RBRACE 
+    {
+        //增加一个为空情况，不加报错
         $$ = new CompoundStmt();
     }
     ;
@@ -230,7 +240,7 @@ Cond
     {
         
         //类型检查08：int->bool
-        if($1->getSymbolEntry()->getType()->toStr()=="i32")
+        if($1->getSymPtr()->getType()->toStr()=="i32")
         {
             fprintf(stderr, "条件表达式应为bool值。\n");
         }
@@ -252,7 +262,7 @@ PrimaryExp
     ;
 UnaryExp 
     : PrimaryExp {$$ = $1;}
-    | ID LPAREN FuncRParams RPAREN 
+    | ID LPAREN FuncActualParams RPAREN 
     {
         SymbolEntry* se;
         se = identifiers->lookup($1);
@@ -297,7 +307,7 @@ UnaryExp
         $$ = $2;
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$2->getSymbolEntry();
+        se1=$2->getSymPtr();
         //fprintf(stderr,"test1\n");
         if(se1!=nullptr)
         {
@@ -316,7 +326,7 @@ UnaryExp
         $$ = new OneOpExpr(se, OneOpExpr::SUB, $2);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$2->getSymbolEntry();
+        se1=$2->getSymPtr();
         //fprintf(stderr,"test1\n");
         if(se1!=nullptr)
         {
@@ -335,7 +345,7 @@ UnaryExp
         $$ = new OneOpExpr(se, OneOpExpr::NOT, $2);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$2->getSymbolEntry();
+        se1=$2->getSymPtr();
         //fprintf(stderr,"test1\n");
         if(se1!=nullptr)
         {
@@ -361,9 +371,9 @@ MulExp
         $$ = new BinaryExpr(se, BinaryExpr::MUL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -390,9 +400,9 @@ MulExp
         $$ = new BinaryExpr(se, BinaryExpr::DIV, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -419,9 +429,9 @@ MulExp
         $$ = new BinaryExpr(se, BinaryExpr::MOD, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -450,9 +460,9 @@ AddExp
     {
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -484,9 +494,9 @@ AddExp
         $$ = new BinaryExpr(se, BinaryExpr::SUB, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -518,9 +528,9 @@ FourthExp
         $$ = new BinaryExpr(se, BinaryExpr::LESS, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -547,9 +557,9 @@ FourthExp
         $$ = new BinaryExpr(se, BinaryExpr::LESSEQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -576,9 +586,9 @@ FourthExp
         $$ = new BinaryExpr(se, BinaryExpr::GREATER, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -605,9 +615,9 @@ FourthExp
         $$ = new BinaryExpr(se, BinaryExpr::GREATEREQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -637,9 +647,9 @@ FifthExp
         $$ = new BinaryExpr(se, BinaryExpr::EQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -666,9 +676,9 @@ FifthExp
         $$ = new BinaryExpr(se, BinaryExpr::NOTEQUAL, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -697,9 +707,9 @@ SixthExp
     {
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -734,9 +744,9 @@ SeventhExp
         $$ = new BinaryExpr(se, BinaryExpr::OR, $1, $3);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
-        se1=$1->getSymbolEntry();
+        se1=$1->getSymPtr();
         SymbolEntry* se2;
-        se2=$3->getSymbolEntry();
+        se2=$3->getSymPtr();
         if(se1!=nullptr)
         {
             if(((se1->getType()))->isFunc())
@@ -762,9 +772,9 @@ SeventhExp
 ConstExp
     : AddExp {$$ = $1;}
     ;
-FuncRParams 
+FuncActualParams 
     : Exp {$$ = $1;}
-    | FuncRParams COMMA Exp 
+    | FuncActualParams COMMA Exp 
     {
         $$ = $1;
         $$->setNext($3);
@@ -983,7 +993,7 @@ InitVal
         if(!stk.empty())
         {
             arrayValue[idx++] = $1->getValue();
-            Type* arrTy = stk.top()->getSymbolEntry()->getType();
+            Type* arrTy = stk.top()->getSymPtr()->getType();
             if(arrTy == TypeSystem::intType)
                 stk.top()->addExpr($1);
             else
@@ -1018,7 +1028,7 @@ InitVal
         }
         else
         {
-            Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
+            Type* type = ((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType();
             int len = type->getSize() / TypeSystem::intType->getSize();
             memset(arrayValue + idx, 0, type->getSize());
             idx += len;
@@ -1034,7 +1044,7 @@ InitVal
     | LBRACE {
         SymbolEntry* se;
         if(!stk.empty())
-            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
         se = new ConstantSymbolEntry(arrayType);
         if(arrayType->getElementType() != TypeSystem::intType){
             arrayType = (ArrayType*)(arrayType->getElementType());
@@ -1057,11 +1067,11 @@ InitVal
             while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
                 stk.pop();
             }
-        int size = ((ArrayType*)($$->getSymbolEntry()->getType()))->getSize()/ TypeSystem::intType->getSize();
+        int size = ((ArrayType*)($$->getSymPtr()->getType()))->getSize()/ TypeSystem::intType->getSize();
         while(idx % size != 0)
             arrayValue[idx++] = 0;
         if(!stk.empty())
-            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
     }
     ;
 
@@ -1070,7 +1080,7 @@ ConstInitVal
         $$ = $1;
         if(!stk.empty()){
             arrayValue[idx++] = $1->getValue();
-            Type* arrTy = stk.top()->getSymbolEntry()->getType();
+            Type* arrTy = stk.top()->getSymPtr()->getType();
             if(arrTy == TypeSystem::intType)
                 stk.top()->addExpr($1);
             else
@@ -1104,7 +1114,7 @@ ConstInitVal
         }
         else
         {
-            Type* type = ((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType();
+            Type* type = ((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType();
             int len = type->getSize() / TypeSystem::intType->getSize();
             memset(arrayValue + idx, 0, type->getSize());
             idx += len;
@@ -1120,7 +1130,7 @@ ConstInitVal
     | LBRACE {
         SymbolEntry* se;
         if(!stk.empty())
-            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
         se = new ConstantSymbolEntry(arrayType);
         if(arrayType->getElementType() != TypeSystem::intType){
             arrayType = (ArrayType*)(arrayType->getElementType());
@@ -1143,10 +1153,10 @@ ConstInitVal
             while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
                 stk.pop();
             }
-        while(idx % (((ArrayType*)($$->getSymbolEntry()->getType()))->getSize()/ sizeof(int)) !=0 )
+        while(idx % (((ArrayType*)($$->getSymPtr()->getType()))->getSize()/ sizeof(int)) !=0 )
             arrayValue[idx++] = 0;
         if(!stk.empty())
-            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymbolEntry()->getType()))->getElementType());
+            arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
     }
     ;
 InitValList
@@ -1177,14 +1187,14 @@ FuncDef
             hasRet=false;
         }
     }
-    LPAREN MaybeFuncFParams RPAREN {
+    LPAREN FuncFormalParams RPAREN {
         Type* funcType;
         std::vector<Type*> vec;
         std::vector<SymbolEntry*> vec1;
         DeclStmt* temp = (DeclStmt*)$5;
         while(temp){
-            vec.push_back(temp->getId()->getSymbolEntry()->getType());
-            vec1.push_back(temp->getId()->getSymbolEntry());
+            vec.push_back(temp->getId()->getSymPtr()->getType());
+            vec1.push_back(temp->getId()->getSymPtr());
             temp = (DeclStmt*)(temp->getNext());
         }
         funcType = new FunctionType($1, vec, vec1);
@@ -1212,9 +1222,11 @@ FuncDef
         }
     }
     ;
-MaybeFuncFParams
+// 函数形参列表
+FuncFormalParams
     : FuncFParams {$$ = $1;}
     | %empty {$$ = nullptr;}
+//多个参数
 FuncFParams
     : FuncFParams COMMA FuncFParam {
         $$ = $1;
@@ -1224,6 +1236,7 @@ FuncFParams
         $$ = $1;
     }
     ;
+//单个参数
 FuncFParam
     : Type ID {
         SymbolEntry* se;

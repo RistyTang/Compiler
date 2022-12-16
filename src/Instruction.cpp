@@ -68,27 +68,38 @@ void BinaryInstruction::output() const {
     s2 = operands[1]->toStr();
     s3 = operands[2]->toStr();
     type = operands[0]->getType()->toStr();
-    switch (opcode) {
-        case ADD:
-            op = "add";
-            break;
-        case SUB:
-            op = "sub";
-            break;
-        case MUL:
-            op = "mul";
-            break;
-        case DIV:
-            op = "sdiv";
-            break;
-        case MOD:
-            op = "srem";
-            break;
-        default:
-            break;
+    if(opcode==NOT)
+    {
+        op="xor";
+        fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(), type.c_str(), s2.c_str(), "true");
+        return;
     }
-    fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(),
-            type.c_str(), s2.c_str(), s3.c_str());
+    else
+    {
+        switch (opcode) 
+        {
+            case ADD:
+                op = "add";
+                break;
+            case SUB:
+                op = "sub";
+                break;
+            case MUL:
+                op = "mul";
+                break;
+            case DIV:
+                op = "sdiv";
+                break;
+            case MOD:
+                op = "srem";
+                break;
+            default:
+                break;
+        }
+        fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(),
+                type.c_str(), s2.c_str(), s3.c_str());
+    }
+    
 }
 
 CmpInstruction::CmpInstruction(unsigned opcode,Operand* dst,Operand* src1,Operand* src2,BasicBlock* insert_bb) : Instruction(CMP, insert_bb) 
@@ -259,7 +270,7 @@ void AllocaInstruction::output() const {
                 type.c_str());
     } else if (se->getType()->isArray()) {
         type = se->getType()->toStr();
-        // type = operands[0]->getSymbolEntry()->getType()->toStr();
+        // type = operands[0]->getSymPtr()->getType()->toStr();
         fprintf(yyout, "  %s = alloca %s, align 4\n", dst.c_str(),
                 type.c_str());
     }
@@ -318,11 +329,8 @@ void StoreInstruction::output() const {
             src.c_str(), dst_type.c_str(), dst.c_str());
 }
 
-CallInstruction::CallInstruction(Operand* dst,
-                                 SymbolEntry* func,
-                                 std::vector<Operand*> params,
-                                 BasicBlock* insert_bb)
-    : Instruction(CALL, insert_bb), func(func) {
+CallInstruction::CallInstruction(Operand* dst,SymbolEntry* func,std::vector<Operand*> params, BasicBlock* insert_bb) : Instruction(CALL, insert_bb), func(func) 
+{
     operands.push_back(dst);
     if (dst)
         dst->setDef(this);
@@ -332,14 +340,15 @@ CallInstruction::CallInstruction(Operand* dst,
     }
 }
 
+//%18 = call i32 @funb(i32 1, i32 1)
 void CallInstruction::output() const {
     fprintf(yyout, "  ");
     if (operands[0])
         fprintf(yyout, "%s = ", operands[0]->toStr().c_str());
     FunctionType* type = (FunctionType*)(func->getType());
-    fprintf(yyout, "call %s %s(", type->getRetType()->toStr().c_str(),
-            func->toStr().c_str());
-    for (long unsigned int i = 1; i < operands.size(); i++) {
+    fprintf(yyout, "call %s %s(", type->getRetType()->toStr().c_str(), func->toStr().c_str());
+    for (long unsigned int i = 1; i < operands.size(); i++) 
+    {
         if (i != 1)
             fprintf(yyout, ", ");
         fprintf(yyout, "%s %s", operands[i]->getType()->toStr().c_str(),
@@ -348,10 +357,13 @@ void CallInstruction::output() const {
     fprintf(yyout, ")\n");
 }
 
-ExtensionInstruction::ExtensionInstruction(Operand* dst,
-                                 Operand* src,
-                                 BasicBlock* insert_bb)
-    : Instruction(ZEXT, insert_bb) {
+CallInstruction::~CallInstruction()
+{
+    operands[0]->removeUse(this);
+}
+
+ExtensionInstruction::ExtensionInstruction(Operand* dst, Operand* src, BasicBlock* insert_bb) : Instruction(ZEXT, insert_bb) 
+{
     operands.push_back(dst);
     operands.push_back(src);
     dst->setDef(this);
@@ -365,53 +377,6 @@ void ExtensionInstruction::output() const {
             src->getType()->toStr().c_str(), src->toStr().c_str());
 }
 
-XorInstruction::XorInstruction(Operand* dst,
-                               Operand* src,
-                               BasicBlock* insert_bb)
-    : Instruction(XOR, insert_bb) {
-    operands.push_back(dst);
-    operands.push_back(src);
-    dst->setDef(this);
-    src->addUse(this);
-}
 
-void XorInstruction::output() const {
-    Operand* dst = operands[0];
-    Operand* src = operands[1];
-    fprintf(yyout, "  %s = xor %s %s, true\n", dst->toStr().c_str(),
-            src->getType()->toStr().c_str(), src->toStr().c_str());
-}
 
-GepInstruction::GepInstruction(Operand* dst,
-                               Operand* arr,
-                               Operand* idx,
-                               BasicBlock* insert_bb,
-                               bool first)
-    : Instruction(GEP, insert_bb), first(first) {
-    operands.push_back(dst);
-    operands.push_back(arr);
-    operands.push_back(idx);
-    dst->setDef(this);
-    arr->addUse(this);
-    idx->addUse(this);
-}
 
-void GepInstruction::output() const {
-    Operand* dst = operands[0];
-    Operand* arr = operands[1];
-    Operand* idx = operands[2];
-    std::string arrType = arr->getType()->toStr();
-    // Type* type = ((PointerType*)(arr->getType()))->getType();
-    // ArrayType* type1 = (ArrayType*)(((ArrayType*)type)->getArrayType());
-    // if (type->isInt() || (type1 && type1->getLength() == -1))
-    if(first)
-        fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s\n",
-                dst->toStr().c_str(),
-                arrType.substr(0, arrType.size() - 1).c_str(), arrType.c_str(),
-                arr->toStr().c_str(), idx->toStr().c_str());
-    else
-        fprintf(
-            yyout, "  %s = getelementptr inbounds %s, %s %s, i32 0, i32 %s\n",
-            dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
-            arrType.c_str(), arr->toStr().c_str(), idx->toStr().c_str());
-}

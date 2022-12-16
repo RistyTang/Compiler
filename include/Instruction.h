@@ -22,7 +22,7 @@ class Instruction {
     Instruction* getPrev();
     virtual void output() const = 0;
 
-   protected:
+protected:
     unsigned instType;
     unsigned opcode;
     Instruction* prev;
@@ -45,7 +45,7 @@ class Instruction {
     };
 };
 
-// meaningless instruction, used as the head node of the instruction list.
+//无任何意义的指令，用来作为指令列表的头节点.
 class DummyInstruction : public Instruction {
    public:
     DummyInstruction() : Instruction(-1, nullptr){};
@@ -91,7 +91,7 @@ class BinaryInstruction : public Instruction {
                       BasicBlock* insert_bb = nullptr);
     ~BinaryInstruction();
     void output() const;
-    enum { SUB, ADD, AND, OR, MUL, DIV, MOD };
+    enum { SUB, ADD, AND, OR, MUL, DIV, MOD, NOT};
 };
 
 class CmpInstruction : public Instruction {
@@ -144,6 +144,7 @@ class RetInstruction : public Instruction {
     void output() const;
 };
 
+//函数调用指令
 class CallInstruction : public Instruction {
    private:
     SymbolEntry* func;
@@ -154,6 +155,7 @@ class CallInstruction : public Instruction {
                     std::vector<Operand*> params,
                     BasicBlock* insert_bb = nullptr);
     void output() const;
+    ~CallInstruction();
 };
 
 //%6 = zext i1 %5 to i32
@@ -166,23 +168,7 @@ class ExtensionInstruction : public Instruction {
     void output() const;
 };
 
-class XorInstruction : public Instruction {
-   public:
-    XorInstruction(Operand* dst, Operand* src, BasicBlock* insert_bb = nullptr);
-    void output() const;
-};
 
-class GepInstruction : public Instruction {
-   private:
-    bool first;
 
-   public:
-    GepInstruction(Operand* dst,
-                   Operand* arr,
-                   Operand* idx,
-                   BasicBlock* insert_bb = nullptr,
-                   bool first = false);
-    void output() const;
-};
 
 #endif

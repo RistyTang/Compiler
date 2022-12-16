@@ -53,10 +53,11 @@ class VoidType : public Type {
     std::string toStr();
 };
 
-class FunctionType : public Type {
-   private:
-    Type* returnType;
-    std::vector<Type*> paramsType;
+class FunctionType : public Type 
+{
+private:
+    Type *returnType;//返回类型
+    std::vector<Type*> paramsType;//各个函数参数的类型
     std::vector<SymbolEntry*> paramsSe;
 
    public:
@@ -67,7 +68,8 @@ class FunctionType : public Type {
           returnType(returnType),
           paramsType(paramsType),
           paramsSe(paramsSe){};
-    void setParamsType(std::vector<Type*> paramsType) {
+    void setParamsType(std::vector<Type*> paramsType) 
+    {
         this->paramsType = paramsType;
     };
     std::vector<Type*> getParamsType() { return paramsType; };
