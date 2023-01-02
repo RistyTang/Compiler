@@ -1,14 +1,14 @@
 SRC_PATH ?= src
 INC_PATH += include
 BUILD_PATH ?= build
-TEST_PATH ?= test/level1-1
+TEST_PATH ?= test/level1
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
-CFLAGS = -O0 -g -Wall -std=c++11 $(INC)
+CFLAGS = -O2 -g -Wall -std=c++11 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))
 BISON ?= $(SRC_PATH)/parser.y
@@ -30,7 +30,7 @@ OUTPUT_RES = $(addsuffix .res, $(basename $(TESTCASE)))
 OUTPUT_BIN = $(addsuffix .bin, $(basename $(TESTCASE)))
 OUTPUT_LOG = $(addsuffix .log, $(basename $(TESTCASE)))
 
-.phony:all app run gdb testlab4 testlab5 testlab6 testlab7 test clean clean-all clean-test clean-app llvmir gccasm
+.phony:all app run gdb testlab4 testlab5 testlab6 testlab7 test clean clean-all clean-test clean-app llvmir gccasm run1
 
 all:app
 
@@ -50,7 +50,13 @@ $(BINARY):$(OBJ)
 app:$(LEXER) $(PARSER) $(BINARY)
 
 run:app
-	@$(BINARY) -o example.s -S example.sy
+	@$(BINARY) -o example.s -S example.sy -O2
+
+run1:app
+	@$(BINARY) -o example.s -S example.sy -O2
+	arm-linux-gnueabihf-gcc example.s $(SYSLIB_PATH)/libsysy.a -o example
+	qemu-arm -L /usr/arm-linux-gnueabihf/ ./example
+	echo $$?
 
 gdb:app
 	@gdb $(BINARY)
