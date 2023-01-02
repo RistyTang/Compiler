@@ -1,0 +1,7 @@
+void函数有返回值
+所调用函数 "putint" 的形参实参个数不匹配
+too many arguments to function @putint i32()
+所调用函数 "putch" 的形参实参个数不匹配
+too many arguments to function @putch i32()
+function does not have a return statement
+TOTAL: 0H-0M-0S-0us
