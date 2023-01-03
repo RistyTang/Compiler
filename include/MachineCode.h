@@ -57,6 +57,8 @@ class MachineOperand {
     void setVal(int val) { this->val = val; };
     std::string getRegString();//获取寄存器编号
     std::string getOperandString();
+    enum RegType { FP=11,SP=13,LR=14,PC=15 };
+    static MachineOperand* newReg(RegType);
 };
 
 class MachineInstruction {
@@ -93,6 +95,7 @@ class MachineInstruction {
     bool isStore() const { return type == STORE; };
     bool isAdd() const { return type == BINARY && op == 0; };
     std::string getCondString();
+    void addUseList(std::vector<MachineOperand*>);
 };
 
 class BinaryMInstruction : public MachineInstruction 
@@ -178,6 +181,7 @@ class StackMInstrcuton : public MachineInstruction {
                      int cond = MachineInstruction::NONE);
     void output();
     std::string getStackCodeString();
+    void addSrc(MachineOperand* src);
 };
 
 class MachineBlock {
@@ -190,6 +194,8 @@ class MachineBlock {
     std::set<MachineOperand*> live_out;
     int cmpCond;
     static int label;
+    //新增
+    typedef std::vector<MachineInstruction*>::iterator InsIterType;
 
    public:
     std::vector<MachineInstruction*>& getInsts() { return inst_list; };
@@ -218,6 +224,11 @@ class MachineBlock {
     void setCmpCond(int cond) { cmpCond = cond; };
     int getSize() const { return inst_list.size(); };
     MachineFunction* getParent() const { return parent; };
+    //输出
+    void outputBlockBx();
+    void outputBlockStore(InsIterType it, bool& first, int& offst);
+    void outputBlockAdd(InsIterType it);
+    void outputInst(InsIterType it, int& offset, int& count, bool&, int);
 };
 
 
@@ -277,6 +288,10 @@ public:
     void insertGlobal(SymbolEntry*);
     void printGlobal();
     int getN() const { return n; };
+    //数组输出实现
+    void printConstIndices(std::vector<int> constIdx);
+    void printZeroIndices(std::vector<int> zeroIdx);
+    void printIDSymbleEntry(IdentifierSymbolEntry* se);
 };
 
 #endif

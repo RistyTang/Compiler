@@ -98,7 +98,8 @@ std::string MachineOperand::getOperandString()
     return temp;
 }
 
-void MachineOperand::output() {
+void MachineOperand::output() 
+{
     /* HINT：print operand
      * Example:
      * immediate num 1 -> print #1;
@@ -107,9 +108,9 @@ void MachineOperand::output() {
    fprintf(yyout,"%s",getOperandString().c_str());
 }
 
-void MachineInstruction::PrintCond() 
+MachineOperand* MachineOperand::newReg(RegType regType) 
 {
-   fprintf(yyout,"%s",getCondString().c_str());
+    return new MachineOperand(MachineOperand::REG, regType);
 }
 
 std::string MachineInstruction::getCondString()
@@ -135,13 +136,28 @@ std::string MachineInstruction::getCondString()
     return "";
 }
 
-void MachineInstruction::insertBefore(MachineInstruction* inst) {
+void MachineInstruction::PrintCond() 
+{
+   fprintf(yyout,"%s",getCondString().c_str());
+}
+
+void MachineInstruction::addUseList(std::vector<MachineOperand*> list)
+{
+    for (auto it = list.begin(); it != list.end(); ++it)
+    {
+        use_list.emplace_back(*it);
+    }
+}
+
+void MachineInstruction::insertBefore(MachineInstruction* inst) 
+{
     auto& instructions = parent->getInsts();
     auto it = std::find(instructions.begin(), instructions.end(), this);
     instructions.insert(it, inst);
 }
 
-void MachineInstruction::insertAfter(MachineInstruction* inst) {
+void MachineInstruction::insertAfter(MachineInstruction* inst) 
+{
     auto& instructions = parent->getInsts();
     auto it = std::find(instructions.begin(), instructions.end(), this);
     instructions.insert(++it, inst);
@@ -383,19 +399,23 @@ void CmpMInstruction::output()
 
 StackMInstrcuton::StackMInstrcuton(MachineBlock* p, int op, std::vector<MachineOperand*> srcs, MachineOperand* src, MachineOperand* src1, int cond) 
 {
-    this->parent = p;
+   this->parent = p;
     this->type = MachineInstruction::STACK;
     this->op = op;
     this->cond = cond;
-    if (srcs.size())
-        for (auto it = srcs.begin(); it != srcs.end(); it++)
-            this->use_list.push_back(*it);
-    this->use_list.push_back(src);
-    src->setParent(this);
-    if (src1) {
-        this->use_list.push_back(src1);
-        src1->setParent(this);
+    if (srcs.size() > 0){
+        addUseList(srcs);
     }
+    addSrc(src);
+    if (src1) {
+        addSrc(src1);
+    }
+}
+
+void StackMInstrcuton::addSrc(MachineOperand* src)
+{
+    use_list.emplace_back(src);
+    src->setParent(this);
 }
 
 std::string StackMInstrcuton::getStackCodeString()
@@ -433,69 +453,92 @@ MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr) {
         ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
 };
 
+void MachineBlock::outputBlockBx()
+{
+    auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+    auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
+    auto cur_inst = new StackMInstrcuton(this, StackMInstrcuton::POP, parent->getSavedRegs(), fp, lr);
+    cur_inst->output();
+}
+
+void MachineBlock::outputBlockStore(InsIterType it, bool& first, int& offset)
+{
+    MachineOperand* operand = (*it)->getUse()[0];
+    if (operand->isReg() && operand->getReg() == 3) {
+        if (first) {
+            first = false;
+        } else {
+            auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+            auto r3 = new MachineOperand(MachineOperand::REG, 3);
+            auto off =
+                new MachineOperand(MachineOperand::IMM, offset);
+            offset += 4;
+            auto cur_inst = new LoadMInstruction(this, r3, fp, off);
+            cur_inst->output();
+        }
+    }
+}
+
+void MachineBlock::outputBlockAdd(InsIterType it)
+{
+    auto dst = (*it)->getDef()[0];
+    auto src1 = (*it)->getUse()[0];
+    if (dst->isReg() && dst->getReg() == 13 && src1->isReg() &&
+        src1->getReg() == 13 && (*(it + 1))->isBX()) {
+        int size = parent->AllocSpace(0);
+        if (size < -255 || size > 255) {
+            auto r1 = new MachineOperand(MachineOperand::REG, 1);
+            auto off =
+                new MachineOperand(MachineOperand::IMM, size);
+            (new LoadMInstruction(nullptr, r1, off))->output();
+            (*it)->getUse()[1]->setReg(1);
+        } else
+            (*it)->getUse()[1]->setVal(size);
+    }
+}
+
+void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& first, int num)
+{
+    if ((*it)->isBX()) {
+        outputBlockBx();
+    }
+    if (num > 4 && (*it)->isStore()) {
+        outputBlockStore(it, first, offset);
+    }
+    if ((*it)->isAdd()) {
+        outputBlockAdd(it);
+    }
+    (*it)->output();
+    ++count;
+    if (count % 500 == 0) 
+    {
+        std::string temp="\tb .B"+std::to_string(label)+"\n";
+        temp+=".LTORG\n";
+        fprintf(yyout,"%s",temp.c_str());
+        //printWithTN("b .B%d", label);
+        //printWithArgs(".LTORG\n");
+        parent->getParent()->printGlobal();
+        temp=".B"+std::to_string(label++)+":\n";
+        fprintf(yyout,"%s",temp.c_str());
+        //printWithArgs(".B%d:\n", label++);
+    }
+}
+
 void MachineBlock::output() 
 {
     bool first = true;
     int offset = (parent->getSavedRegs().size() + 2) * 4;
     int num = parent->getParamsNum();
     int count = 0;
-    if (!inst_list.empty()) 
+    if(inst_list.empty())
     {
-        //.L146:
-        fprintf(yyout, ".L%d:\n", this->no);
-        for (auto it = inst_list.begin(); it != inst_list.end(); it++) 
-        {
-            if ((*it)->isBX()) 
-            {
-                auto fp = new MachineOperand(MachineOperand::REG, 11);
-                auto lr = new MachineOperand(MachineOperand::REG, 14);
-                auto cur_inst =
-                    new StackMInstrcuton(this, StackMInstrcuton::POP,
-                                         parent->getSavedRegs(), fp, lr);
-                cur_inst->output();
-            }
-            if (num > 4 && (*it)->isStore()) {
-                MachineOperand* operand = (*it)->getUse()[0];
-                if (operand->isReg() && operand->getReg() == 3) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        auto fp = new MachineOperand(MachineOperand::REG, 11);
-                        auto r3 = new MachineOperand(MachineOperand::REG, 3);
-                        auto off =
-                            new MachineOperand(MachineOperand::IMM, offset);
-                        offset += 4;
-                        auto cur_inst = new LoadMInstruction(this, r3, fp, off);
-                        cur_inst->output();
-                    }
-                }
-            }
-            if ((*it)->isAdd()) {
-                auto dst = (*it)->getDef()[0];
-                auto src1 = (*it)->getUse()[0];
-                if (dst->isReg() && dst->getReg() == 13 && src1->isReg() &&
-                    src1->getReg() == 13 && (*(it + 1))->isBX()) {
-                    int size = parent->AllocSpace(0);
-                    if (size < -255 || size > 255) {
-                        auto r1 = new MachineOperand(MachineOperand::REG, 1);
-                        auto off =
-                            new MachineOperand(MachineOperand::IMM, size);
-                        (new LoadMInstruction(nullptr, r1, off))->output();
-                        (*it)->getUse()[1]->setReg(1);
-                    } else
-                        (*it)->getUse()[1]->setVal(size);
-                }
-            }
-            (*it)->output();
-            count++;
-            if (count % 500 == 0) 
-            {
-                fprintf(yyout, "\tb .B%d\n", label);
-                fprintf(yyout, ".LTORG\n");
-                parent->getParent()->printGlobal();
-                fprintf(yyout, ".B%d:\n", label++);
-            }
-        }
+        return;
+    }
+    //.L146:
+    fprintf(yyout, ".L%d:\n", this->no);
+    for (auto it = inst_list.begin(); it != inst_list.end(); it++) 
+    {
+        outputInst(it, offset, count, first, num);
     }
 }
 
@@ -515,39 +558,39 @@ void MachineFunction::output()
      *  4. Allocate stack space for local variable */
 
     // Traverse all the block in block_list to print assembly code.
-    auto fp = new MachineOperand(MachineOperand::REG, 11);
-    auto sp = new MachineOperand(MachineOperand::REG, 13);
-    auto lr = new MachineOperand(MachineOperand::REG, 14);
-    (new StackMInstrcuton(nullptr, StackMInstrcuton::PUSH, getSavedRegs(), fp,
-                          lr))
-        ->output();
+    auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+    auto sp = MachineOperand::newReg(MachineOperand::RegType::SP);
+    auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
+    (new StackMInstrcuton(nullptr, StackMInstrcuton::PUSH, getSavedRegs(), fp, lr))->output();
     (new MovMInstruction(nullptr, MovMInstruction::MOV, fp, sp))->output();
     int off = AllocSpace(0);
     auto size = new MachineOperand(MachineOperand::IMM, off);
-    if (off < -255 || off > 255) {
+    if (off < -255 || off > 255) 
+    {
         auto r4 = new MachineOperand(MachineOperand::REG, 4);
         (new LoadMInstruction(nullptr, r4, size))->output();
-        (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, r4))
-            ->output();
-    } else {
-        (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, size))
-            ->output();
+        (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, r4))->output();
+    } 
+    else 
+    {
+        (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, size)) ->output();
     }
-    int count = 0;
+    long long count = 0;
+    std::string temp;
     for (auto iter : block_list) 
     {
         iter->output();
         count += iter->getSize();
-        if(count > 160)
+        if(count <= 160)
         {
-            std::string temp;
-            temp = "\tb .F"+std::to_string(parent->getN())+"\n";
-            temp+=".LTORG\n";
-            fprintf(yyout,"%s",temp.c_str());
-            parent->printGlobal();
-            fprintf(yyout, ".F%d:\n", parent->getN()-1);
-            count = 0;
+            continue;
         }
+        temp = "\tb .F"+std::to_string(parent->getN())+"\n";
+        temp+=".LTORG\n";
+        fprintf(yyout,"%s",temp.c_str());
+        parent->printGlobal();
+        fprintf(yyout, ".F%d:\n", parent->getN()-1);
+        count = 0;
     }
     fprintf(yyout, "\n");
 }
@@ -562,6 +605,60 @@ std::vector<MachineOperand*> MachineFunction::getSavedRegs()
     return regs;
 }
 
+//打印ID表项
+void MachineUnit::printIDSymbleEntry(IdentifierSymbolEntry* se)
+{
+    std::string temp="\t.global "+se->toStr()+"\n";
+    temp+="\t.align 4\n";
+    temp+="\t.size ";
+    temp+=se->toStr();
+    temp+=", ";
+    temp+=std::to_string(se->getType()->getSize() / 8);
+    temp+="\n";
+    fprintf(yyout,"%s",temp.c_str());
+    temp=se->toStr()+":\n";
+    fprintf(yyout,"%s",temp.c_str());
+    if (!se->getType()->isArray()) 
+    {
+        temp="\t.word "+std::to_string(se->getValue())+"\n";
+        fprintf(yyout,"%s",temp.c_str());
+    } 
+    else 
+    {
+        int n = se->getType()->getSize() / 32;
+        int* p = se->getArrayValue();
+        for (int i = 0; i < n; i++) 
+        {
+            temp="\t.word "+std::to_string(p[i])+"\n";
+            fprintf(yyout,"%s",temp.c_str());
+        }
+    }
+}
+
+void MachineUnit::printConstIndices(std::vector<int> constIdx)
+{
+    
+    fprintf(yyout,"\t.section .rodata\n");
+    for (auto i : constIdx) 
+    {
+        IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
+        printIDSymbleEntry(se);
+    }
+}
+
+void MachineUnit::printZeroIndices(std::vector<int> zeroIdx)
+{
+    for (auto i : zeroIdx) 
+    {
+        IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
+        if (se->getType()->isArray()) 
+        {
+            fprintf(yyout,"\t.comm %s, %d, 4\n", se->toStr().c_str(), se->getType()->getSize() / 8);
+        }
+    }
+}
+
+
 void MachineUnit::PrintGlobalDecl() 
 {
     std::vector<int> constIdx;
@@ -575,88 +672,24 @@ void MachineUnit::PrintGlobalDecl()
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
         if (se->getConst()) 
         {
-            constIdx.push_back(i);
+            constIdx.emplace_back(i);
+            continue;
         } 
         else if (se->isAllZero()) 
         {
-            zeroIdx.push_back(i);
+            zeroIdx.emplace_back(i);
+            continue;
         } 
-        else 
-        {
-            //.global main
-            std::string temp="\t.global "+se->toStr()+"\n";
-            //.align 4
-            temp+="\t.align 4\n";
-            //.size n, 4
-            temp+="\t.size ";
-            temp+=se->toStr();
-            temp+=", ";
-            temp+=std::to_string(se->getType()->getSize() / 8);
-            temp+="\n";
-            //func:
-            temp+=se->toStr();
-            temp+=":\n";
-            fprintf(yyout,"%s",temp.c_str());
-            if (!se->getType()->isArray()) //不是数组直接打印
-            {
-                //  .word 0
-                fprintf(yyout, "\t.word %d\n", se->getValue());
-            } 
-            else 
-            {
-                int n = se->getType()->getSize() / 32;
-                int* p = se->getArrayValue();
-                for (int i = 0; i < n; i++) 
-                {
-                    fprintf(yyout, "\t.word %d\n", p[i]);
-                }
-            }
-        }
+       printIDSymbleEntry(se);
     }
+    //数组
     if (!constIdx.empty()) 
     {
-        fprintf(yyout, "\t.section .rodata\n");
-        for (auto i : constIdx) 
-        {
-            IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-            //.global main
-            std::string temp="\t.global "+se->toStr()+"\n";
-            //.align 4
-            temp+="\t.align 4\n";
-            //.size n, 4
-            temp+="\t.size ";
-            temp+=se->toStr();
-            temp+=", ";
-            temp+=std::to_string(se->getType()->getSize() / 8);
-            temp+="\n";
-            //func:
-            temp+=se->toStr();
-            temp+=":\n";
-            fprintf(yyout,"%s",temp.c_str());
-            if (!se->getType()->isArray()) 
-            {
-                fprintf(yyout, "\t.word %d\n", se->getValue());
-            } 
-            else 
-            {
-                int n = se->getType()->getSize() / 32;
-                int* p = se->getArrayValue();
-                for (int i = 0; i < n; i++) 
-                {
-                    fprintf(yyout, "\t.word %d\n", p[i]);
-                }
-            }
-        }
+       printConstIndices(constIdx);
     }
-    if (!zeroIdx.empty()) {
-        for (auto i : zeroIdx) {
-            IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-            if (se->getType()->isArray()) 
-            {
-                fprintf(yyout, "\t.comm %s, %d, 4\n", se->toStr().c_str(),
-                        se->getType()->getSize() / 8);
-            }
-        }
+    if (!zeroIdx.empty()) 
+    {
+        printZeroIndices(zeroIdx);
     }
 }
 
