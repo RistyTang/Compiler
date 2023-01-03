@@ -439,10 +439,14 @@ void MachineBlock::output()
     int offset = (parent->getSavedRegs().size() + 2) * 4;
     int num = parent->getParamsNum();
     int count = 0;
-    if (!inst_list.empty()) {
+    if (!inst_list.empty()) 
+    {
+        //.L146:
         fprintf(yyout, ".L%d:\n", this->no);
-        for (auto it = inst_list.begin(); it != inst_list.end(); it++) {
-            if ((*it)->isBX()) {
+        for (auto it = inst_list.begin(); it != inst_list.end(); it++) 
+        {
+            if ((*it)->isBX()) 
+            {
                 auto fp = new MachineOperand(MachineOperand::REG, 11);
                 auto lr = new MachineOperand(MachineOperand::REG, 14);
                 auto cur_inst =
@@ -484,7 +488,8 @@ void MachineBlock::output()
             }
             (*it)->output();
             count++;
-            if (count % 500 == 0) {
+            if (count % 500 == 0) 
+            {
                 fprintf(yyout, "\tb .B%d\n", label);
                 fprintf(yyout, ".LTORG\n");
                 parent->getParent()->printGlobal();
@@ -494,10 +499,13 @@ void MachineBlock::output()
     }
 }
 
-void MachineFunction::output() {
+void MachineFunction::output() 
+{
+    //	.global Dijkstra
     fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
-    fprintf(yyout, "\t.type %s , %%function\n",
-            this->sym_ptr->toStr().c_str() + 1);
+    //.type Dijkstra , %function
+    fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
+    //Dijkstra:
     fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
     // TODO
     /* Hint:
@@ -526,12 +534,16 @@ void MachineFunction::output() {
             ->output();
     }
     int count = 0;
-    for (auto iter : block_list) {
+    for (auto iter : block_list) 
+    {
         iter->output();
         count += iter->getSize();
-        if(count > 160){
-            fprintf(yyout, "\tb .F%d\n", parent->getN());
-            fprintf(yyout, ".LTORG\n");
+        if(count > 160)
+        {
+            std::string temp;
+            temp = "\tb .F"+std::to_string(parent->getN())+"\n";
+            temp+=".LTORG\n";
+            fprintf(yyout,"%s",temp.c_str());
             parent->printGlobal();
             fprintf(yyout, ".F%d:\n", parent->getN()-1);
             count = 0;
@@ -540,7 +552,8 @@ void MachineFunction::output() {
     fprintf(yyout, "\n");
 }
 
-std::vector<MachineOperand*> MachineFunction::getSavedRegs() {
+std::vector<MachineOperand*> MachineFunction::getSavedRegs() 
+{
     std::vector<MachineOperand*> regs;
     for (auto it = saved_regs.begin(); it != saved_regs.end(); it++) {
         auto reg = new MachineOperand(MachineOperand::REG, *it);
@@ -557,7 +570,8 @@ void MachineUnit::PrintGlobalDecl()
     {
         fprintf(yyout, "\t.data\n");
     }
-    for (long unsigned int i = 0; i < global_list.size(); i++) {
+    for (long unsigned int i = 0; i < global_list.size(); i++) 
+    {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
         if (se->getConst()) 
         {
@@ -599,21 +613,36 @@ void MachineUnit::PrintGlobalDecl()
             }
         }
     }
-    if (!constIdx.empty()) {
+    if (!constIdx.empty()) 
+    {
         fprintf(yyout, "\t.section .rodata\n");
-        for (auto i : constIdx) {
+        for (auto i : constIdx) 
+        {
             IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-            fprintf(yyout, "\t.global %s\n", se->toStr().c_str());
-            fprintf(yyout, "\t.align 4\n");
-            fprintf(yyout, "\t.size %s, %d\n", se->toStr().c_str(),
-                    se->getType()->getSize() / 8);
-            fprintf(yyout, "%s:\n", se->toStr().c_str());
-            if (!se->getType()->isArray()) {
+            //.global main
+            std::string temp="\t.global "+se->toStr()+"\n";
+            //.align 4
+            temp+="\t.align 4\n";
+            //.size n, 4
+            temp+="\t.size ";
+            temp+=se->toStr();
+            temp+=", ";
+            temp+=std::to_string(se->getType()->getSize() / 8);
+            temp+="\n";
+            //func:
+            temp+=se->toStr();
+            temp+=":\n";
+            fprintf(yyout,"%s",temp.c_str());
+            if (!se->getType()->isArray()) 
+            {
                 fprintf(yyout, "\t.word %d\n", se->getValue());
-            } else {
+            } 
+            else 
+            {
                 int n = se->getType()->getSize() / 32;
                 int* p = se->getArrayValue();
-                for (int i = 0; i < n; i++) {
+                for (int i = 0; i < n; i++) 
+                {
                     fprintf(yyout, "\t.word %d\n", p[i]);
                 }
             }
@@ -622,7 +651,8 @@ void MachineUnit::PrintGlobalDecl()
     if (!zeroIdx.empty()) {
         for (auto i : zeroIdx) {
             IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-            if (se->getType()->isArray()) {
+            if (se->getType()->isArray()) 
+            {
                 fprintf(yyout, "\t.comm %s, %d, 4\n", se->toStr().c_str(),
                         se->getType()->getSize() / 8);
             }
@@ -630,17 +660,23 @@ void MachineUnit::PrintGlobalDecl()
     }
 }
 
-void MachineUnit::output() {
+void MachineUnit::output() 
+{
     // TODO
     /* Hint:
      * 1. You need to print global variable/const declarition code;
      * 2. Traverse all the function in func_list to print assembly code;
      * 3. Don't forget print bridge label at the end of assembly code!! */
-    fprintf(yyout, "\t.arch armv8-a\n");
-    fprintf(yyout, "\t.arch_extension crc\n");
-    fprintf(yyout, "\t.arm\n");
+    std::string temp;
+    temp="\t.arch armv8-a\n";
+    //	.arch_extension crc
+    temp+="\t.arch_extension crc\n";
+    //	.arm
+    temp+="\t.arm\n";
+    fprintf(yyout, "%s",temp.c_str());
     PrintGlobalDecl();
-    fprintf(yyout, "\t.text\n");
+    temp="\t.text\n";
+    fprintf(yyout, "%s",temp.c_str());
     for (auto iter : func_list)
         iter->output();
     printGlobal();
@@ -652,10 +688,17 @@ void MachineUnit::insertGlobal(SymbolEntry* se) {
 
 void MachineUnit::printGlobal()
 {
-    for (auto s : global_list) {
+    std::string temp;
+    for (auto s : global_list) 
+    {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)s;
-        fprintf(yyout, "addr_%s%d:\n", se->toStr().c_str(), n);
-        fprintf(yyout, "\t.word %s\n", se->toStr().c_str());
+        //addr_n0:
+        temp="addr_"+se->toStr()+std::to_string(n)+":\n";
+        //	.word n
+        temp+="\t.word ";
+        temp+=se->toStr();
+        temp+="\n";
+        fprintf(yyout, "%s",temp.c_str());
     }
     n++;
 }
