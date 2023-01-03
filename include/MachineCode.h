@@ -172,6 +172,7 @@ class StackMInstrcuton : public MachineInstruction {
                      MachineOperand* src1 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
+    std::string getStackCodeString();
 };
 
 class MachineBlock {

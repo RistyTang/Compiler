@@ -398,23 +398,31 @@ StackMInstrcuton::StackMInstrcuton(MachineBlock* p, int op, std::vector<MachineO
     }
 }
 
+std::string StackMInstrcuton::getStackCodeString()
+{
+    std::string temp;
+    if(op==PUSH)
+    {
+        temp="\tpush ";
+    }
+    else if( op == POP )
+    {
+        temp="\tpop ";
+    }
+    temp+="{";
+    temp+=this->use_list[0]->getOperandString();
+    for (long unsigned int i = 1; i < use_list.size(); i++) 
+    {
+        temp+=", ";
+        temp+=this->use_list[i]->getOperandString();
+    }
+    temp+="}\n";
+    return temp;
+}
+
 void StackMInstrcuton::output() 
 {
-    switch (op) {
-        case PUSH:
-            fprintf(yyout, "\tpush ");
-            break;
-        case POP:
-            fprintf(yyout, "\tpop ");
-            break;
-    }
-    fprintf(yyout, "{");
-    this->use_list[0]->output();
-    for (long unsigned int i = 1; i < use_list.size(); i++) {
-        fprintf(yyout, ", ");
-        this->use_list[i]->output();
-    }
-    fprintf(yyout, "}\n");
+   fprintf(yyout,"%s",getStackCodeString().c_str());
 }
 
 MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr) {
@@ -425,7 +433,8 @@ MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr) {
         ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
 };
 
-void MachineBlock::output() {
+void MachineBlock::output() 
+{
     bool first = true;
     int offset = (parent->getSavedRegs().size() + 2) * 4;
     int num = parent->getParamsNum();
@@ -540,29 +549,51 @@ std::vector<MachineOperand*> MachineFunction::getSavedRegs() {
     return regs;
 }
 
-void MachineUnit::PrintGlobalDecl() {
+void MachineUnit::PrintGlobalDecl() 
+{
     std::vector<int> constIdx;
     std::vector<int> zeroIdx;
     if (!global_list.empty())
+    {
         fprintf(yyout, "\t.data\n");
+    }
     for (long unsigned int i = 0; i < global_list.size(); i++) {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-        if (se->getConst()) {
+        if (se->getConst()) 
+        {
             constIdx.push_back(i);
-        } else if (se->isAllZero()) {
+        } 
+        else if (se->isAllZero()) 
+        {
             zeroIdx.push_back(i);
-        } else {
-            fprintf(yyout, "\t.global %s\n", se->toStr().c_str());
-            fprintf(yyout, "\t.align 4\n");
-            fprintf(yyout, "\t.size %s, %d\n", se->toStr().c_str(),
-                    se->getType()->getSize() / 8);
-            fprintf(yyout, "%s:\n", se->toStr().c_str());
-            if (!se->getType()->isArray()) {
+        } 
+        else 
+        {
+            //.global main
+            std::string temp="\t.global "+se->toStr()+"\n";
+            //.align 4
+            temp+="\t.align 4\n";
+            //.size n, 4
+            temp+="\t.size ";
+            temp+=se->toStr();
+            temp+=", ";
+            temp+=std::to_string(se->getType()->getSize() / 8);
+            temp+="\n";
+            //func:
+            temp+=se->toStr();
+            temp+=":\n";
+            fprintf(yyout,"%s",temp.c_str());
+            if (!se->getType()->isArray()) //不是数组直接打印
+            {
+                //  .word 0
                 fprintf(yyout, "\t.word %d\n", se->getValue());
-            } else {
+            } 
+            else 
+            {
                 int n = se->getType()->getSize() / 32;
                 int* p = se->getArrayValue();
-                for (int i = 0; i < n; i++) {
+                for (int i = 0; i < n; i++) 
+                {
                     fprintf(yyout, "\t.word %d\n", p[i]);
                 }
             }
@@ -619,7 +650,8 @@ void MachineUnit::insertGlobal(SymbolEntry* se) {
     global_list.push_back(se);
 }
 
-void MachineUnit::printGlobal(){
+void MachineUnit::printGlobal()
+{
     for (auto s : global_list) {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)s;
         fprintf(yyout, "addr_%s%d:\n", se->toStr().c_str(), n);
