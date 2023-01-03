@@ -8,6 +8,7 @@ class MachineFunction;
 class MachineUnit;
 class MachineOperand;
 class MachineBlock;
+//为活跃变量分析，用于寄存器分配过程。
 class LiveVariableAnalysis
 {
 private:

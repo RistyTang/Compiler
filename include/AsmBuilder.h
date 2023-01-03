@@ -3,13 +3,13 @@
 
 #include "MachineCode.h"
 
-
+//汇编代码构造辅助类，类似IRBuilder
 class AsmBuilder
 {
 private:
     MachineUnit* mUnit;  // mahicne unit
     MachineFunction* mFunction; // current machine code function;
-    MachineBlock* mBlock; // current machine code block;
+    MachineBlock* mBlock; //当前block
     int cmpOpcode; // CmpInstruction opcode, for CondInstruction;
 public:
     void setUnit(MachineUnit* unit) { this->mUnit = unit; };

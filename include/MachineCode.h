@@ -29,9 +29,9 @@ class MachineOperand {
    private:
     MachineInstruction* parent;
     int type;
-    int val;            // value of immediate number
-    int reg_no;         // register no
-    std::string label;  // address label
+    int val;            // value of immediate number立即数的值
+    int reg_no;         // register no寄存器编号
+    std::string label;  // address label地址编号，主要为 BranchMInstruction 及 LoadMInstruction 的操作数
    public:
     enum { IMM, VREG, REG, LABEL };
     MachineOperand(int tp, int val);
@@ -43,7 +43,6 @@ class MachineOperand {
     bool isVReg() { return this->type == VREG; };
     bool isLabel() { return this->type == LABEL; };
     int getVal() { return this->val; };
-    void setVal(int val) { this->val = val; };
     int getReg() { return this->reg_no; };
     void setReg(int regno) {
         this->type = REG;
@@ -54,7 +53,9 @@ class MachineOperand {
     MachineInstruction* getParent() { return this->parent; };
     void PrintReg();
     void output();
-    std::string getRegString();
+    //新增
+    void setVal(int val) { this->val = val; };
+    std::string getRegString();//获取寄存器编号
     std::string getOperandString();
 };
 
@@ -83,6 +84,7 @@ class MachineInstruction {
     int getNo() { return no; };
     std::vector<MachineOperand*>& getDef() { return def_list; };
     std::vector<MachineOperand*>& getUse() { return use_list; };
+    //新增
     void insertBefore(MachineInstruction*);
     void insertAfter(MachineInstruction*);
     MachineBlock* getParent() const { return parent; };
@@ -93,7 +95,8 @@ class MachineInstruction {
     std::string getCondString();
 };
 
-class BinaryMInstruction : public MachineInstruction {
+class BinaryMInstruction : public MachineInstruction 
+{
    public:
     enum opType { ADD, SUB, MUL, DIV, AND, OR };
     BinaryMInstruction(MachineBlock* p,
@@ -106,7 +109,8 @@ class BinaryMInstruction : public MachineInstruction {
     std::string getCodeString();
 };
 
-class LoadMInstruction : public MachineInstruction {
+class LoadMInstruction : public MachineInstruction 
+{
    public:
     LoadMInstruction(MachineBlock* p,
                      MachineOperand* dst,
@@ -117,7 +121,8 @@ class LoadMInstruction : public MachineInstruction {
     std::string getLoadCodeString();
 };
 
-class StoreMInstruction : public MachineInstruction {
+class StoreMInstruction : public MachineInstruction 
+{
    public:
     StoreMInstruction(MachineBlock* p,
                       MachineOperand* src1,
@@ -208,6 +213,7 @@ class MachineBlock {
     std::vector<MachineBlock*>& getPreds() { return pred; };
     std::vector<MachineBlock*>& getSuccs() { return succ; };
     void output();
+    //以下为新增
     int getCmpCond() const { return cmpCond; };
     void setCmpCond(int cond) { cmpCond = cond; };
     int getSize() const { return inst_list.size(); };
@@ -244,20 +250,22 @@ class MachineFunction {
     };
     void addSavedRegs(int regno) { saved_regs.insert(regno); };
     void output();
+    //新增
     std::vector<MachineOperand*> getSavedRegs();
     int getParamsNum() const { return paramsNum; };
     MachineUnit* getParent() const { return parent; };
 };
 
 
-class MachineUnit {
-   private:
-    std::vector<SymbolEntry*> global_list;
+class MachineUnit 
+{
+private:
+    std::vector<SymbolEntry*> global_list;//新增
     std::vector<MachineFunction*> func_list;
     void PrintGlobalDecl();
-    int n;
+    int n;//新增
 
-   public:
+public:
     std::vector<MachineFunction*>& getFuncs() { return func_list; };
     std::vector<MachineFunction*>::iterator begin() {
         return func_list.begin();
@@ -265,6 +273,7 @@ class MachineUnit {
     std::vector<MachineFunction*>::iterator end() { return func_list.end(); };
     void InsertFunc(MachineFunction* func) { func_list.push_back(func); };
     void output();
+    //新增
     void insertGlobal(SymbolEntry*);
     void printGlobal();
     int getN() const { return n; };
