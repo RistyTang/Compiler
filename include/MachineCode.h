@@ -54,6 +54,8 @@ class MachineOperand {
     MachineInstruction* getParent() { return this->parent; };
     void PrintReg();
     void output();
+    std::string getRegString();
+    std::string getOperandString();
 };
 
 class MachineInstruction {
@@ -88,6 +90,7 @@ class MachineInstruction {
     bool isBX() const { return type == BRANCH && op == 2; };
     bool isStore() const { return type == STORE; };
     bool isAdd() const { return type == BINARY && op == 0; };
+    std::string getCondString();
 };
 
 class BinaryMInstruction : public MachineInstruction {
@@ -100,6 +103,7 @@ class BinaryMInstruction : public MachineInstruction {
                        MachineOperand* src2,
                        int cond = MachineInstruction::NONE);
     void output();
+    std::string getCodeString();
 };
 
 class LoadMInstruction : public MachineInstruction {
@@ -110,6 +114,7 @@ class LoadMInstruction : public MachineInstruction {
                      MachineOperand* src2 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
+    std::string getLoadCodeString();
 };
 
 class StoreMInstruction : public MachineInstruction {
@@ -120,6 +125,7 @@ class StoreMInstruction : public MachineInstruction {
                       MachineOperand* src3 = nullptr,
                       int cond = MachineInstruction::NONE);
     void output();
+    std::string getStoreCodeString();
 };
 
 class MovMInstruction : public MachineInstruction {
@@ -131,6 +137,7 @@ class MovMInstruction : public MachineInstruction {
                     MachineOperand* src,
                     int cond = MachineInstruction::NONE);
     void output();
+    std::string getMovCodeString();
 };
 
 class BranchMInstruction : public MachineInstruction {
@@ -141,6 +148,7 @@ class BranchMInstruction : public MachineInstruction {
                        MachineOperand* dst,
                        int cond = MachineInstruction::NONE);
     void output();
+    std::string getBranchCodeString();
 };
 
 class CmpMInstruction : public MachineInstruction {
@@ -151,6 +159,7 @@ class CmpMInstruction : public MachineInstruction {
                     MachineOperand* src2,
                     int cond = MachineInstruction::NONE);
     void output();
+    std::string getCmpCodeString();
 };
 
 class StackMInstrcuton : public MachineInstruction {
