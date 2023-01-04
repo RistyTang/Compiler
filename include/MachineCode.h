@@ -44,7 +44,8 @@ class MachineOperand {
     bool isLabel() { return this->type == LABEL; };
     int getVal() { return this->val; };
     int getReg() { return this->reg_no; };
-    void setReg(int regno) {
+    void setReg(int regno) 
+    {
         this->type = REG;
         this->reg_no = regno;
     };
@@ -61,25 +62,26 @@ class MachineOperand {
     static MachineOperand* newReg(RegType);
 };
 
-class MachineInstruction {
-   protected:
+class MachineInstruction 
+{
+protected:
     MachineBlock* parent;
     int no;
-    int type;                             // Instruction type
-    int cond = MachineInstruction::NONE;  // Instruction execution condition,
+    int type;                             // Instruction type指令类型，为instType中指定
+    int cond = MachineInstruction::NONE;  // Instruction execution condition,//条件，condType中
                                           // optional !!
-    int op;                               // Instruction opcode
+    int op;                               // Instruction opcode指令码
     // Instruction operand list, sorted by appearance order in assembly
     // instruction
-    std::vector<MachineOperand*> def_list;
-    std::vector<MachineOperand*> use_list;
+    std::vector<MachineOperand*> def_list;//定义
+    std::vector<MachineOperand*> use_list;//使用
     void addDef(MachineOperand* ope) { def_list.push_back(ope); };
     void addUse(MachineOperand* ope) { use_list.push_back(ope); };
     // Print execution code after printing opcode
     void PrintCond();
     enum instType { BINARY, LOAD, STORE, MOV, BRANCH, CMP, STACK };
 
-   public:
+public:
     enum condType { EQ, NE, LT, LE, GT, GE, NONE };
     virtual void output() = 0;
     void setNo(int no) { this->no = no; };
@@ -187,7 +189,7 @@ class StackMInstrcuton : public MachineInstruction {
 class MachineBlock {
    private:
     MachineFunction* parent;
-    int no;
+    int no;//块号
     std::vector<MachineBlock*> pred, succ;
     std::vector<MachineInstruction*> inst_list;
     std::set<MachineOperand*> live_in;
@@ -251,8 +253,10 @@ class MachineFunction {
      * return current frame offset ;
      * we store offset in symbol entry of this variable in function
      * AllocInstruction::genMachineCode() you can use this function in
-     * LinearScan::genSpillCode() */
-    int AllocSpace(int size) {
+     * LinearScan::genSpillCode() 
+     * */
+    int AllocSpace(int size) //为局部变量分配栈空间，返回的是当前frame偏移量
+    {
         this->stack_size += size;
         return this->stack_size;
     };
@@ -262,7 +266,7 @@ class MachineFunction {
     void addSavedRegs(int regno) { saved_regs.insert(regno); };
     void output();
     //新增
-    std::vector<MachineOperand*> getSavedRegs();
+    std::vector<MachineOperand*> getSavedRegs();//获取保存的寄存器
     int getParamsNum() const { return paramsNum; };
     MachineUnit* getParent() const { return parent; };
 };

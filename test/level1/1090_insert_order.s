@@ -52,8 +52,12 @@ insert:
 	movge r4, #0
 	blt .L76
 	b .L86
+.L81:
+.L82:
 .L83:
 	b .L77
+.L84:
+.L85:
 .L86:
 	b .L77
 .L87:
@@ -94,6 +98,8 @@ insert:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L90:
+.L91:
 .L92:
 	b .L89
 
@@ -242,6 +248,8 @@ main:
 	add sp, sp, #52
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L104:
+.L105:
 .L106:
 	b .L103
 

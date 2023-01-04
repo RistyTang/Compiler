@@ -41,6 +41,8 @@ select_sort:
 	add sp, sp, #24
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L90:
+.L91:
 .L92:
 	b .L89
 .L93:
@@ -75,6 +77,8 @@ select_sort:
 	cmp r4, r5
 	bne .L108
 	b .L112
+.L96:
+.L97:
 .L98:
 	b .L95
 .L99:
@@ -86,6 +90,8 @@ select_sort:
 	add r5, r4, #1
 	str r5, [fp, #-12]
 	b .L93
+.L105:
+.L106:
 .L107:
 	b .L100
 .L108:
@@ -121,6 +127,8 @@ select_sort:
 	add r5, r4, #1
 	str r5, [fp, #-16]
 	b .L87
+.L110:
+.L111:
 .L112:
 	b .L109
 
@@ -267,6 +275,8 @@ main:
 	add sp, sp, #48
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L126:
+.L127:
 .L128:
 	b .L125
 

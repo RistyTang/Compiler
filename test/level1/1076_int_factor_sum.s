@@ -50,6 +50,8 @@ factor:
 	add sp, sp, #12
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L39:
+.L40:
 .L41:
 	b .L38
 .L42:
@@ -63,6 +65,8 @@ factor:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L36
+.L44:
+.L45:
 .L46:
 	b .L43
 

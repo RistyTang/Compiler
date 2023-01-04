@@ -38,6 +38,8 @@ deepWhileBr:
 	add sp, sp, #20
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L42:
+.L43:
 .L44:
 	b .L41
 .L46:
@@ -53,6 +55,8 @@ deepWhileBr:
 	b .L55
 .L47:
 	b .L39
+.L48:
+.L49:
 .L50:
 	b .L47
 .L51:
@@ -66,6 +70,8 @@ deepWhileBr:
 	b .L61
 .L52:
 	b .L47
+.L53:
+.L54:
 .L55:
 	b .L52
 .L57:
@@ -76,6 +82,8 @@ deepWhileBr:
 	b .L58
 .L58:
 	b .L52
+.L59:
+.L60:
 .L61:
 	b .L58
 

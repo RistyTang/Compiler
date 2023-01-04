@@ -314,6 +314,8 @@ main:
 	mov r4, r0
 	str r4, [fp, #-8]
 	b .L191
+.L187:
+.L188:
 .L189:
 	b .L186
 .L191:
@@ -361,6 +363,8 @@ addr_N0:
 	ldr r4, =0
 	str r4, [fp, #-8]
 	b .L198
+.L194:
+.L195:
 .L196:
 	b .L193
 .L198:
@@ -399,6 +403,8 @@ addr_N0:
 	bl putch
 	mov r4, r0
 	b .L205
+.L201:
+.L202:
 .L203:
 	b .L200
 .L205:
@@ -438,6 +444,8 @@ addr_N0:
 	add sp, sp, #148
 	pop {r4, r5, r6, r7, r8, r9, r10, fp, lr}
 	bx lr
+.L208:
+.L209:
 .L210:
 	b .L207
 

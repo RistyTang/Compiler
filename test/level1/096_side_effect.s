@@ -82,6 +82,8 @@ main:
 	add sp, sp, #4
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L63:
+.L64:
 .L65:
 	b .L62
 .L66:
@@ -122,12 +124,18 @@ main:
 	cmp r4, #0
 	bne .L68
 	b .L74
+.L70:
 .L71:
 	b .L67
+.L72:
+.L73:
 .L74:
 	b .L67
+.L75:
+.L76:
 .L77:
 	b .L67
+.L78:
 .L79:
 	ldr r4, addr_a0
 	ldr r5, [r4]
@@ -159,6 +167,8 @@ main:
 	cmp r4, #0
 	bne .L86
 	b .L88
+.L83:
+.L84:
 .L85:
 	b .L82
 .L86:
@@ -171,10 +181,14 @@ main:
 	cmp r4, #0
 	bne .L79
 	b .L91
+.L87:
 .L88:
 	b .L80
+.L89:
+.L90:
 .L91:
 	b .L80
+.L92:
 
 addr_a0:
 	.word a

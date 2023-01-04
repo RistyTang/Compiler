@@ -74,6 +74,8 @@ EightWhile:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L101:
+.L102:
 .L103:
 	b .L100
 .L104:
@@ -93,6 +95,8 @@ EightWhile:
 	sub r5, r4, #2
 	str r5, [fp, #-12]
 	b .L98
+.L107:
+.L108:
 .L109:
 	b .L106
 .L110:
@@ -110,6 +114,8 @@ EightWhile:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L104
+.L113:
+.L114:
 .L115:
 	b .L112
 .L116:
@@ -129,6 +135,8 @@ EightWhile:
 	sub r5, r4, #1
 	str r5, [fp, #-4]
 	b .L110
+.L119:
+.L120:
 .L121:
 	b .L118
 .L122:
@@ -153,6 +161,8 @@ EightWhile:
 	ldr r5, addr_e0
 	str r4, [r5]
 	b .L116
+.L125:
+.L126:
 .L127:
 	b .L124
 .L128:
@@ -177,6 +187,8 @@ EightWhile:
 	ldr r5, addr_f0
 	str r4, [r5]
 	b .L122
+.L131:
+.L132:
 .L133:
 	b .L130
 .L134:
@@ -201,6 +213,8 @@ EightWhile:
 	ldr r5, addr_g0
 	str r4, [r5]
 	b .L128
+.L137:
+.L138:
 .L139:
 	b .L136
 .L140:
@@ -236,6 +250,8 @@ addr_f0:
 addr_e0:
 	.word e
 .F0:
+.L143:
+.L144:
 .L145:
 	b .L142
 

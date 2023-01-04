@@ -361,6 +361,8 @@ main:
 	add sp, sp, #4
 	pop {r4, r5, fp, lr}
 	bx lr
+.L144:
+.L145:
 .L146:
 	b .L143
 

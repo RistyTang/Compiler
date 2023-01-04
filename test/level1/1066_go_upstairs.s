@@ -51,6 +51,8 @@ climbStairs:
 	ldr r4, =3
 	str r4, [fp, #-4]
 	b .L45
+.L40:
+.L41:
 .L42:
 	b .L39
 .L45:
@@ -103,6 +105,8 @@ climbStairs:
 	add sp, sp, #48
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L48:
+.L49:
 .L50:
 	b .L47
 

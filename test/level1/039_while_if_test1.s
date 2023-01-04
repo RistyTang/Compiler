@@ -32,6 +32,8 @@ whileIf:
 	add sp, sp, #8
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L26:
+.L27:
 .L28:
 	b .L25
 .L29:
@@ -48,6 +50,8 @@ whileIf:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L23
+.L32:
+.L33:
 .L34:
 	b .L30
 .L35:
@@ -62,6 +66,8 @@ whileIf:
 	b .L37
 .L37:
 	b .L31
+.L38:
+.L39:
 .L40:
 	b .L36
 

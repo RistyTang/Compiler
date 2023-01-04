@@ -59,6 +59,8 @@ palindrome:
 	cmp r4, r5
 	beq .L58
 	b .L63
+.L52:
+.L53:
 .L54:
 	b .L51
 .L55:
@@ -93,8 +95,12 @@ palindrome:
 	cmp r4, r5
 	beq .L55
 	b .L68
+.L61:
+.L62:
 .L63:
 	b .L56
+.L66:
+.L67:
 .L68:
 	b .L56
 
@@ -141,6 +147,8 @@ main:
 	add sp, sp, #8
 	pop {r4, fp, lr}
 	bx lr
+.L75:
+.L76:
 .L77:
 	b .L73
 

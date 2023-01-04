@@ -40,6 +40,8 @@ removeElement:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L56:
+.L57:
 .L58:
 	b .L55
 .L59:
@@ -67,6 +69,8 @@ removeElement:
 	b .L61
 .L61:
 	b .L53
+.L64:
+.L65:
 .L66:
 	b .L60
 

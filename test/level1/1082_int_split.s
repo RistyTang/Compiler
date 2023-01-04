@@ -59,6 +59,8 @@ split:
 	add sp, sp, #12
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L54:
+.L55:
 .L56:
 	b .L53
 
@@ -126,6 +128,8 @@ main:
 	add sp, sp, #28
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L66:
+.L67:
 .L68:
 	b .L65
 

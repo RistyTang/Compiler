@@ -37,6 +37,8 @@ fun:
 	add sp, sp, #12
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L36:
+.L37:
 .L38:
 	b .L35
 

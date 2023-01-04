@@ -52,6 +52,8 @@ maxArea:
 	add sp, sp, #24
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L80:
+.L81:
 .L82:
 	b .L79
 .L84:
@@ -88,6 +90,8 @@ maxArea:
 	movle r4, #0
 	bgt .L98
 	b .L102
+.L91:
+.L92:
 .L93:
 	b .L85
 .L98:
@@ -112,6 +116,8 @@ maxArea:
 	movle r4, #0
 	bgt .L103
 	b .L112
+.L100:
+.L101:
 .L102:
 	b .L99
 .L103:
@@ -126,6 +132,8 @@ maxArea:
 	b .L105
 .L105:
 	b .L77
+.L110:
+.L111:
 .L112:
 	b .L104
 

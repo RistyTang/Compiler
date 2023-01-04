@@ -42,6 +42,8 @@ FourWhile:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L53:
+.L54:
 .L55:
 	b .L52
 .L56:
@@ -61,6 +63,8 @@ FourWhile:
 	sub r5, r4, #2
 	str r5, [fp, #-12]
 	b .L50
+.L59:
+.L60:
 .L61:
 	b .L58
 .L62:
@@ -78,6 +82,8 @@ FourWhile:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L56
+.L65:
+.L66:
 .L67:
 	b .L64
 .L68:
@@ -97,6 +103,8 @@ FourWhile:
 	sub r5, r4, #1
 	str r5, [fp, #-4]
 	b .L62
+.L71:
+.L72:
 .L73:
 	b .L70
 

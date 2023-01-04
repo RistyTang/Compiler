@@ -147,14 +147,18 @@ main:
 	cmp r4, #0
 	bne .L103
 	b .L107
+.L59:
+.L60:
 .L61:
 	b .L58
 .L63:
 	b .L58
 .L64:
 	b .L56
+.L65:
 .L66:
 	b .L64
+.L67:
 .L68:
 	b .L64
 .L103:
@@ -397,8 +401,10 @@ addr_c0:
 	add sp, sp, #220
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L106:
 .L107:
 	b .L104
+.L108:
 
 addr_b1:
 	.word b

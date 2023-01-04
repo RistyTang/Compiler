@@ -5,7 +5,9 @@ extern FILE* yyout;
 
 int MachineBlock::label = 0;
 
-MachineOperand::MachineOperand(int tp, int val) {
+MachineOperand::MachineOperand(int tp, int val) 
+{
+    //是立即数则赋值，否则设置寄存器号。
     this->type = tp;
     if (tp == MachineOperand::IMM)
         this->val = val;
@@ -13,12 +15,15 @@ MachineOperand::MachineOperand(int tp, int val) {
         this->reg_no = val;
 }
 
-MachineOperand::MachineOperand(std::string label) {
+MachineOperand::MachineOperand(std::string label) 
+{
+    //地址编号
     this->type = MachineOperand::LABEL;
     this->label = label;
 }
 
-bool MachineOperand::operator==(const MachineOperand& a) const {
+bool MachineOperand::operator==(const MachineOperand& a) const 
+{
     if (this->type != a.type)
         return false;
     if (this->type == IMM)
@@ -26,14 +31,18 @@ bool MachineOperand::operator==(const MachineOperand& a) const {
     return this->reg_no == a.reg_no;
 }
 
-bool MachineOperand::operator<(const MachineOperand& a) const {
-    if (this->type == a.type) {
+//
+bool MachineOperand::operator<(const MachineOperand& a) const 
+{
+    if (this->type == a.type) 
+    {
         if (this->type == IMM)
             return this->val < a.val;
         return this->reg_no < a.reg_no;
     }
     return this->type < a.type;
 
+    //？这些代码为什么要存在？
     if (this->type != a.type)
         return false;
     if (this->type == IMM)
@@ -41,22 +50,24 @@ bool MachineOperand::operator<(const MachineOperand& a) const {
     return this->reg_no == a.reg_no;
 }
 
-void MachineOperand::PrintReg() {
+void MachineOperand::PrintReg() 
+{
     fprintf(yyout,"%s",getRegString().c_str());
 }
 
-//获取编号
+//获取寄存器编号
 std::string MachineOperand::getRegString()
 {
-    switch (reg_no) {
+    switch (reg_no) 
+    {
         case 11:
-            return "fp";
+            return "fp";//栈顶指针，指向一个栈帧的顶部
         case 13:
-            return "sp";
+            return "sp";//栈指针（也称为栈底指针），指向栈当前的位置
         case 14:
-            return "lr";
+            return "lr";//链接寄存器，保存函数返回的地址。
         case 15:
-            return "pc";
+            return "pc";//存储指向下一条命令的地址
         default:
             std::string temp="r" + std::to_string(reg_no);
             return temp;
@@ -66,18 +77,18 @@ std::string MachineOperand::getRegString()
 std::string MachineOperand::getOperandString()
 {
     std::string temp;
-    switch (this->type) {
-        case IMM:
-            temp="#" + std::to_string(this->val);
+    switch (this->type) 
+    {
+        case IMM://立即数
+            temp="#" + std::to_string(this->val);//immediate num 1 -> print #1;
             break;
-        case VREG:
-            temp="v" + std::to_string(this->reg_no);
+        case VREG://虚拟寄存器
+            temp="v" + std::to_string(this->reg_no);//register 1 -> print v1;
             break;
-        case REG:
-            //PrintReg();
-            temp=getRegString();
+        case REG://分配的寄存器
+            temp=getRegString();//register 1 -> print r1;
             break;
-        case LABEL:
+        case LABEL://地址
             if (this->label.substr(0, 2) == ".L")
             {    
                 temp=this->label.c_str();
@@ -86,7 +97,7 @@ std::string MachineOperand::getOperandString()
             {    
                 temp=this->label.c_str() + 1;
             }
-            else
+            else//lable addr_a -> print addr_a;
             {
                 temp="addr_"+this->label+std::to_string(parent->getParent()->getParent()->getParent()->getN());
             }
@@ -117,17 +128,17 @@ std::string MachineInstruction::getCondString()
 {
     switch (cond) 
     {
-        case EQ:
+        case EQ://相等
             return "eq";
-        case NE:
+        case NE://不等
             return "ne";
-        case LT:
+        case LT://小于
             return "lt";
-        case LE:
+        case LE://<=
             return "le";
-        case GT:
+        case GT://>
             return "gt";
-        case GE:
+        case GE://>=
             return "ge";
         default:
             break;
@@ -149,6 +160,7 @@ void MachineInstruction::addUseList(std::vector<MachineOperand*> list)
     }
 }
 
+//本指令插入到inst之前
 void MachineInstruction::insertBefore(MachineInstruction* inst) 
 {
     auto& instructions = parent->getInsts();
@@ -156,6 +168,7 @@ void MachineInstruction::insertBefore(MachineInstruction* inst)
     instructions.insert(it, inst);
 }
 
+//本指令插入到inst之后
 void MachineInstruction::insertAfter(MachineInstruction* inst) 
 {
     auto& instructions = parent->getInsts();
@@ -182,7 +195,7 @@ std::string BinaryMInstruction::getCodeString()
     std::string temp="";
     switch (this->op) 
     {
-        case BinaryMInstruction::ADD:
+        case BinaryMInstruction::ADD://add r5, r6, r7       结果在r5
             temp="\tadd "+getCondString()+this->def_list[0]->getOperandString()+", "+this->use_list[0]->getOperandString() + ", " + this->use_list[1]->getOperandString() + "\n";
             break;
         case BinaryMInstruction::SUB:
@@ -266,6 +279,7 @@ void LoadMInstruction::output()
 
 StoreMInstruction::StoreMInstruction(MachineBlock* p, MachineOperand* src1, MachineOperand* src2, MachineOperand* src3, int cond) 
 {
+    //TODO store没有deflist
     this->parent = p;
     this->type = MachineInstruction::STORE;
     this->op = -1;
@@ -282,16 +296,17 @@ StoreMInstruction::StoreMInstruction(MachineBlock* p, MachineOperand* src1, Mach
 
 std::string StoreMInstruction::getStoreCodeString()
 {
+    //str r4, [r6]
     std::string temp;
     temp="\tstr ";
     temp+=this->use_list[0]->getOperandString();
     temp+=", ";
-    if (this->use_list[1]->isReg() || this->use_list[1]->isVReg())
+    if (this->use_list[1]->isReg() || this->use_list[1]->isVReg())//是寄存器的话要加上[取值
     {
         temp+="[";
     }
     temp+=this->use_list[1]->getOperandString();
-    if (this->use_list.size() > 2)
+    if (this->use_list.size() > 2)//str r5, [fp, #-8]
     {
         temp+=", ";
         temp+=this->use_list[2]->getOperandString();
@@ -302,6 +317,7 @@ std::string StoreMInstruction::getStoreCodeString()
     }
     temp+="\n";
     return temp;
+   
 }
 
 void StoreMInstruction::output() 
@@ -345,7 +361,7 @@ BranchMInstruction::BranchMInstruction(MachineBlock* p, int op, MachineOperand* 
     this->type = MachineInstruction::BRANCH;
     this->op = op;
     this->cond = cond;
-    this->use_list.push_back(dst);
+    this->def_list.push_back(dst);
     dst->setParent(this);
 }
 
@@ -355,13 +371,13 @@ std::string BranchMInstruction::getBranchCodeString()
     switch (op) 
     {
         case B:
-            temp="\tb"+getCondString()+" "+this->use_list[0]->getOperandString()+"\n";
+            temp="\tb"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
         case BX:
-            temp="\tbx"+getCondString()+" "+this->use_list[0]->getOperandString()+"\n";
+            temp="\tbx"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
         case BL:
-            temp="\tbl"+getCondString()+" "+this->use_list[0]->getOperandString()+"\n";
+            temp="\tbl"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
     }
     return temp;
@@ -445,14 +461,16 @@ void StackMInstrcuton::output()
    fprintf(yyout,"%s",getStackCodeString().c_str());
 }
 
-MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr) {
+MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr) 
+{
     this->parent = p;
     this->sym_ptr = sym_ptr;
     this->stack_size = 0;
-    this->paramsNum =
-        ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
+    //增加对参数个数的判断
+    this->paramsNum = ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
 };
 
+//POP指令的输出
 void MachineBlock::outputBlockBx()
 {
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
@@ -464,10 +482,14 @@ void MachineBlock::outputBlockBx()
 void MachineBlock::outputBlockStore(InsIterType it, bool& first, int& offset)
 {
     MachineOperand* operand = (*it)->getUse()[0];
-    if (operand->isReg() && operand->getReg() == 3) {
-        if (first) {
+    if (operand->isReg() && operand->getReg() == 3) 
+    {
+        if (first) 
+        {
             first = false;
-        } else {
+        } 
+        else 
+        {
             auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
             auto r3 = new MachineOperand(MachineOperand::REG, 3);
             auto off =
@@ -526,16 +548,13 @@ void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& fir
 
 void MachineBlock::output() 
 {
-    bool first = true;
+    bool first = true;//
     int offset = (parent->getSavedRegs().size() + 2) * 4;
     int num = parent->getParamsNum();
     int count = 0;
-    if(inst_list.empty())
-    {
-        return;
-    }
-    //.L146:
+    //输出块号.L146:
     fprintf(yyout, ".L%d:\n", this->no);
+    //输出指令
     for (auto it = inst_list.begin(); it != inst_list.end(); it++) 
     {
         outputInst(it, offset, count, first, num);
@@ -544,31 +563,41 @@ void MachineBlock::output()
 
 void MachineFunction::output() 
 {
-    //	.global Dijkstra
+    //函数名	.global Dijkstra
     fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
-    //.type Dijkstra , %function
+    //类型.type Dijkstra , %function
     fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
-    //Dijkstra:
+    //函数具体翻译Dijkstra:
     fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
     // TODO
     /* Hint:
-     *  1. Save fp
-     *  2. fp = sp
-     *  3. Save callee saved register
-     *  4. Allocate stack space for local variable */
+     *  1. Save fp保存栈顶指针
+     *  2. fp = sp抬高栈
+     *  3. Save callee saved register保存寄存器
+     *  4. Allocate stack space for local variable 分配空间
+     * */
 
     // Traverse all the block in block_list to print assembly code.
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
     auto sp = MachineOperand::newReg(MachineOperand::RegType::SP);
     auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
+    //1. Save fp保存栈顶指针
     (new StackMInstrcuton(nullptr, StackMInstrcuton::PUSH, getSavedRegs(), fp, lr))->output();
+
+    //2. fp = sp抬高栈
     (new MovMInstruction(nullptr, MovMInstruction::MOV, fp, sp))->output();
+
+    //3. Save callee saved register保存寄存器
+    //获取当前偏移量
     int off = AllocSpace(0);
-    auto size = new MachineOperand(MachineOperand::IMM, off);
+    auto size = new MachineOperand(MachineOperand::IMM, off);//operand为立即数off
     if (off < -255 || off > 255) 
     {
+        //设置为4号寄存器
         auto r4 = new MachineOperand(MachineOperand::REG, 4);
+        //nullptr具体在哪个块未定，存到寄存器r4
         (new LoadMInstruction(nullptr, r4, size))->output();
+        //sp=sp-size抬高栈
         (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, r4))->output();
     } 
     else 
@@ -598,7 +627,8 @@ void MachineFunction::output()
 std::vector<MachineOperand*> MachineFunction::getSavedRegs() 
 {
     std::vector<MachineOperand*> regs;
-    for (auto it = saved_regs.begin(); it != saved_regs.end(); it++) {
+    for (auto it = saved_regs.begin(); it != saved_regs.end(); it++) 
+    {
         auto reg = new MachineOperand(MachineOperand::REG, *it);
         regs.push_back(reg);
     }
@@ -608,16 +638,21 @@ std::vector<MachineOperand*> MachineFunction::getSavedRegs()
 //打印ID表项
 void MachineUnit::printIDSymbleEntry(IdentifierSymbolEntry* se)
 {
+    //	.global TAPE_LEN
     std::string temp="\t.global "+se->toStr()+"\n";
+    //	.align 4
     temp+="\t.align 4\n";
+    //	.size TAPE_LEN, 4
     temp+="\t.size ";
     temp+=se->toStr();
     temp+=", ";
     temp+=std::to_string(se->getType()->getSize() / 8);
     temp+="\n";
     fprintf(yyout,"%s",temp.c_str());
+    //TAPE_LEN:
     temp=se->toStr()+":\n";
     fprintf(yyout,"%s",temp.c_str());
+    //
     if (!se->getType()->isArray()) 
     {
         temp="\t.word "+std::to_string(se->getValue())+"\n";

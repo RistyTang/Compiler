@@ -32,6 +32,8 @@ doubleWhile:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L25:
+.L26:
 .L27:
 	b .L24
 .L28:
@@ -51,6 +53,8 @@ doubleWhile:
 	sub r5, r4, #100
 	str r5, [fp, #-4]
 	b .L22
+.L31:
+.L32:
 .L33:
 	b .L30
 

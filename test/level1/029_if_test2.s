@@ -40,8 +40,12 @@ ifElseIf:
 	cmp r4, #11
 	beq .L34
 	b .L43
+.L38:
+.L39:
 .L40:
 	b .L37
+.L41:
+.L42:
 .L43:
 	b .L35
 .L44:
@@ -60,8 +64,12 @@ ifElseIf:
 	cmp r4, #1
 	beq .L44
 	b .L53
+.L48:
+.L49:
 .L50:
 	b .L45
+.L51:
+.L52:
 .L53:
 	b .L45
 .L54:
@@ -84,8 +92,12 @@ ifElseIf:
 	cmp r4, r6
 	beq .L54
 	b .L63
+.L58:
+.L59:
 .L60:
 	b .L55
+.L61:
+.L62:
 .L63:
 	b .L55
 

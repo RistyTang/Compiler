@@ -31,6 +31,8 @@ ifElse:
 	add sp, sp, #4
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L15:
+.L16:
 .L17:
 	b .L13
 

@@ -38,6 +38,8 @@ KnapSack:
 	ldr r4, [fp, #-36]
 	str r4, [fp, #-16]
 	b .L159
+.L121:
+.L122:
 .L123:
 	b .L120
 .L124:
@@ -67,6 +69,8 @@ KnapSack:
 	add r5, r4, #1
 	str r5, [fp, #-16]
 	b .L118
+.L127:
+.L128:
 .L129:
 	b .L126
 .L130:
@@ -147,6 +151,8 @@ KnapSack:
 	add r5, r4, #1
 	str r5, [fp, #-12]
 	b .L124
+.L135:
+.L136:
 .L137:
 	b .L131
 .L151:
@@ -179,6 +185,8 @@ KnapSack:
 	b .L153
 .L153:
 	b .L132
+.L154:
+.L155:
 .L156:
 	b .L152
 .L159:
@@ -238,6 +246,8 @@ addr_V0:
 	add sp, sp, #36
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L162:
+.L163:
 .L164:
 	b .L161
 .L165:
@@ -272,6 +282,8 @@ addr_V0:
 	sub r5, r4, #1
 	str r5, [fp, #-16]
 	b .L159
+.L172:
+.L173:
 .L174:
 	b .L166
 

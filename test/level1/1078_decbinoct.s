@@ -50,6 +50,8 @@ dec2bin:
 	add sp, sp, #20
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L48:
+.L49:
 .L50:
 	b .L47
 

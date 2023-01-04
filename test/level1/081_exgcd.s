@@ -102,6 +102,8 @@ exgcd:
 	add sp, sp, #24
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L61:
+.L62:
 .L63:
 	b .L59
 

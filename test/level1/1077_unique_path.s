@@ -30,8 +30,12 @@ uniquePaths:
 	cmp r4, #1
 	beq .L86
 	b .L94
+.L89:
+.L90:
 .L91:
 	b .L88
+.L92:
+.L93:
 .L94:
 	b .L87
 .L98:
@@ -64,6 +68,8 @@ uniquePaths:
 	ldr r4, =0
 	str r4, [fp, #-8]
 	b .L104
+.L101:
+.L102:
 .L103:
 	b .L100
 .L104:
@@ -97,6 +103,8 @@ uniquePaths:
 	sub r5, r4, #2
 	str r5, [fp, #-8]
 	b .L110
+.L107:
+.L108:
 .L109:
 	b .L106
 .L110:
@@ -125,6 +133,8 @@ uniquePaths:
 	add sp, sp, #52
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L113:
+.L114:
 .L115:
 	b .L112
 .L116:
@@ -182,6 +192,8 @@ uniquePaths:
 	sub r5, r4, #1
 	str r5, [fp, #-8]
 	b .L110
+.L119:
+.L120:
 .L121:
 	b .L118
 

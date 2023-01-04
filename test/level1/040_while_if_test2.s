@@ -27,6 +27,8 @@ ifWhile:
 	add sp, sp, #8
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L30:
+.L31:
 .L32:
 	b .L28
 .L33:
@@ -44,6 +46,8 @@ ifWhile:
 	add r5, r4, #25
 	str r5, [fp, #-4]
 	b .L29
+.L36:
+.L37:
 .L38:
 	b .L35
 .L39:
@@ -64,6 +68,8 @@ ifWhile:
 	b .L39
 .L41:
 	b .L29
+.L42:
+.L43:
 .L44:
 	b .L41
 

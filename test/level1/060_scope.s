@@ -45,6 +45,8 @@ func:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L32:
+.L33:
 .L34:
 	b .L30
 
@@ -80,6 +82,8 @@ main:
 	movge r4, #0
 	blt .L49
 	b .L54
+.L41:
+.L42:
 .L43:
 	b .L40
 .L44:
@@ -92,6 +96,8 @@ main:
 	add r5, r4, #1
 	str r5, [fp, #-4]
 	b .L38
+.L46:
+.L47:
 .L48:
 	b .L45
 .L49:
@@ -109,6 +115,8 @@ main:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L52:
+.L53:
 .L54:
 	b .L50
 

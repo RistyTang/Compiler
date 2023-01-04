@@ -638,6 +638,8 @@ main:
 	mov r4, r0
 	str r4, [fp, #-8]
 	b .L371
+.L367:
+.L368:
 .L369:
 	b .L366
 .L371:
@@ -652,9 +654,9 @@ main:
 .L372:
 	ldr r4, [fp, #-8]
 	mov r5, #-56
-	mov r7, #4
-	mul r6, r4, r7
-	add r4, r5, r6
+	mov r6, #4
+	mul r7, r4, r6
+	add r4, r5, r7
 	add r5, fp, r4
 	ldr r4, [r5]
 	str r4, [fp, #-4]
@@ -685,6 +687,8 @@ addr_N1:
 	bl putch
 	mov r4, r0
 	b .L378
+.L374:
+.L375:
 .L376:
 	b .L373
 .L378:
@@ -699,9 +703,9 @@ addr_N1:
 .L379:
 	ldr r4, [fp, #-8]
 	mov r5, #-32
-	mov r7, #4
-	mul r6, r4, r7
-	add r4, r5, r6
+	mov r6, #4
+	mul r7, r4, r6
+	add r4, r5, r7
 	add r5, fp, r4
 	ldr r4, [r5]
 	str r4, [fp, #-4]
@@ -723,6 +727,8 @@ addr_N1:
 	bl putch
 	mov r4, r0
 	b .L385
+.L381:
+.L382:
 .L383:
 	b .L380
 .L385:
@@ -762,6 +768,8 @@ addr_N1:
 	add sp, sp, #148
 	pop {r4, r5, r6, r7, r8, r9, r10, fp, lr}
 	bx lr
+.L388:
+.L389:
 .L390:
 	b .L387
 

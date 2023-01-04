@@ -43,6 +43,8 @@ concat:
 	ldr r4, =0
 	str r4, [fp, #-4]
 	b .L99
+.L92:
+.L93:
 .L94:
 	b .L91
 .L99:
@@ -77,6 +79,8 @@ concat:
 	add sp, sp, #20
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L102:
+.L103:
 .L104:
 	b .L101
 
@@ -176,6 +180,8 @@ main:
 	mov r4, r0
 	str r4, [fp, #-8]
 	b .L126
+.L122:
+.L123:
 .L124:
 	b .L121
 .L126:
@@ -213,6 +219,8 @@ main:
 	add sp, sp, #128
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L129:
+.L130:
 .L131:
 	b .L128
 

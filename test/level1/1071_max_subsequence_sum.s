@@ -26,6 +26,8 @@ maxSubArray:
 	cmp r4, #1
 	beq .L66
 	b .L70
+.L63:
+.L64:
 .L65:
 	b .L62
 .L66:
@@ -53,6 +55,8 @@ maxSubArray:
 	ldr r4, =1
 	str r4, [fp, #-4]
 	b .L78
+.L68:
+.L69:
 .L70:
 	b .L67
 .L78:
@@ -76,6 +80,8 @@ maxSubArray:
 	add sp, sp, #20
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L81:
+.L82:
 .L83:
 	b .L80
 .L84:
@@ -99,6 +105,8 @@ maxSubArray:
 	movge r4, #0
 	blt .L91
 	b .L95
+.L86:
+.L87:
 .L88:
 	b .L85
 .L91:
@@ -110,6 +118,8 @@ maxSubArray:
 	add r5, r4, #1
 	str r5, [fp, #-4]
 	b .L78
+.L93:
+.L94:
 .L95:
 	b .L92
 

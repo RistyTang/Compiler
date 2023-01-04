@@ -36,6 +36,8 @@ MAX:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L121:
+.L122:
 .L123:
 	b .L119
 .L124:
@@ -54,6 +56,8 @@ MAX:
 	b .L126
 .L126:
 	b .L120
+.L127:
+.L128:
 .L129:
 	b .L125
 
@@ -218,6 +222,8 @@ max_sum_nonadjacent:
 	add sp, sp, #76
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L160:
+.L161:
 .L162:
 	b .L159
 
@@ -1055,6 +1061,8 @@ longest_common_subseq:
 	add sp, sp, r1
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L691:
+.L692:
 .L693:
 	b .L690
 .L694:
@@ -1091,6 +1099,8 @@ longest_common_subseq:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L688
+.L697:
+.L698:
 .L699:
 	b .L696
 .L700:
@@ -1166,6 +1176,8 @@ longest_common_subseq:
 	add r5, r4, #1
 	str r5, [fp, #-4]
 	b .L694
+.L707:
+.L708:
 .L709:
 	b .L701
 

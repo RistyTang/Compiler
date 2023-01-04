@@ -37,8 +37,10 @@ main:
 	b .L27
 .L29:
 	b .L33
+.L30:
 .L31:
 	b .L29
+.L32:
 .L33:
 	ldr r4, [fp, #-8]
 	cmp r4, #0
@@ -70,6 +72,8 @@ main:
 	add sp, sp, r1
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L36:
 .L37:
 	b .L35
+.L38:
 

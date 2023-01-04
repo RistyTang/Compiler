@@ -260,6 +260,8 @@ dfs:
 	ldr r4, =0
 	str r4, [fp, #-12]
 	b .L238
+.L234:
+.L235:
 .L236:
 	b .L233
 .L238:
@@ -302,6 +304,8 @@ dfs:
 	add sp, sp, #24
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L242:
+.L243:
 .L244:
 	b .L240
 .L245:
@@ -326,8 +330,10 @@ dfs:
 	movgt r4, #0
 	ble .L254
 	b .L260
+.L250:
 .L251:
 	b .L246
+.L252:
 .L253:
 	b .L246
 .L254:
@@ -353,6 +359,8 @@ dfs:
 	movge r4, #0
 	blt .L263
 	b .L270
+.L258:
+.L259:
 .L260:
 	b .L255
 .L261:
@@ -401,6 +409,8 @@ dfs:
 	movle r4, #0
 	bgt .L276
 	b .L280
+.L268:
+.L269:
 .L270:
 	b .L264
 .L276:
@@ -518,6 +528,8 @@ addr_used0:
 	add r5, r4, #1
 	str r5, [fp, #-12]
 	b .L238
+.L278:
+.L279:
 .L280:
 	b .L277
 
@@ -568,8 +580,10 @@ max_flow:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L302:
 .L303:
 	b .L301
+.L304:
 .L306:
 	ldr r4, [fp, #-8]
 	mov r0, r4
@@ -583,6 +597,8 @@ max_flow:
 	add r6, r4, r5
 	str r6, [fp, #-8]
 	b .L299
+.L308:
+.L309:
 .L310:
 	b .L307
 
@@ -654,6 +670,8 @@ main:
 	add sp, sp, #20
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L317:
+.L318:
 .L319:
 	b .L316
 

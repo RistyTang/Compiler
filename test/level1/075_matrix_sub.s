@@ -116,6 +116,8 @@ sub:
 	add sp, sp, #40
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L153:
+.L154:
 .L155:
 	b .L152
 
@@ -226,9 +228,9 @@ main:
 	str r8, [fp, #-132]
 	mov r4, #0
 	mov r8, #-80
-	mov r9, #4
-	mul r10, r4, r9
-	add r4, r8, r10
+	mov r10, #4
+	mul r9, r4, r10
+	add r4, r8, r9
 	add r8, fp, r4
 	str r8, [fp, #-136]
 	mov r4, #0
@@ -277,6 +279,8 @@ main:
 	mov r4, r0
 	str r4, [fp, #-8]
 	b .L189
+.L185:
+.L186:
 .L187:
 	b .L184
 .L189:
@@ -322,6 +326,8 @@ addr_L0:
 	bl putch
 	mov r4, r0
 	b .L196
+.L192:
+.L193:
 .L194:
 	b .L191
 .L196:
@@ -334,9 +340,9 @@ addr_L0:
 .L197:
 	ldr r4, [fp, #-8]
 	mov r5, #-32
-	mov r6, #4
-	mul r7, r4, r6
-	add r4, r5, r7
+	mov r7, #4
+	mul r6, r4, r7
+	add r4, r5, r6
 	add r5, fp, r4
 	ldr r4, [r5]
 	str r4, [fp, #-4]
@@ -358,6 +364,8 @@ addr_L0:
 	bl putch
 	mov r4, r0
 	b .L203
+.L199:
+.L200:
 .L201:
 	b .L198
 .L203:
@@ -370,9 +378,9 @@ addr_L0:
 .L204:
 	ldr r4, [fp, #-8]
 	mov r5, #-20
-	mov r6, #4
-	mul r7, r4, r6
-	add r4, r5, r7
+	mov r7, #4
+	mul r6, r4, r7
+	add r4, r5, r6
 	add r5, fp, r4
 	ldr r4, [r5]
 	str r4, [fp, #-4]
@@ -395,6 +403,8 @@ addr_L0:
 	add sp, sp, #148
 	pop {r4, r5, r6, r7, r8, r9, r10, fp, lr}
 	bx lr
+.L206:
+.L207:
 .L208:
 	b .L205
 

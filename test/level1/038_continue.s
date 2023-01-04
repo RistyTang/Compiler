@@ -32,6 +32,8 @@ main:
 	add sp, sp, #8
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L25:
+.L26:
 .L27:
 	b .L24
 .L28:
@@ -48,6 +50,8 @@ main:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L22
+.L30:
+.L31:
 .L32:
 	b .L29
 .L33:

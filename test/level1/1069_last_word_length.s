@@ -26,6 +26,8 @@ lengthOfLastWord:
 	sub r5, r4, #1
 	str r5, [fp, #-8]
 	b .L77
+.L73:
+.L74:
 .L75:
 	b .L72
 .L77:
@@ -59,8 +61,12 @@ lengthOfLastWord:
 	cmp r4, #0
 	beq .L78
 	b .L88
+.L81:
+.L82:
 .L83:
 	b .L79
+.L86:
+.L87:
 .L88:
 	b .L79
 .L89:
@@ -73,6 +79,8 @@ lengthOfLastWord:
 	ldr r4, [fp, #-8]
 	str r4, [fp, #-4]
 	b .L95
+.L91:
+.L92:
 .L93:
 	b .L90
 .L95:
@@ -102,6 +110,8 @@ lengthOfLastWord:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L98:
+.L99:
 .L100:
 	b .L97
 .L101:
@@ -124,6 +134,8 @@ lengthOfLastWord:
 	sub r5, r4, #1
 	str r5, [fp, #-4]
 	b .L95
+.L105:
+.L106:
 .L107:
 	b .L102
 

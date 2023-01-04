@@ -37,6 +37,8 @@ gcd:
 	add sp, sp, #8
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L33:
+.L34:
 .L35:
 	b .L32
 
@@ -86,6 +88,8 @@ main:
 	add sp, sp, #12
 	pop {r4, r5, fp, lr}
 	bx lr
+.L41:
+.L42:
 .L43:
 	b .L40
 

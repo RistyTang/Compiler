@@ -33,6 +33,8 @@ if_if_Else:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L20:
+.L21:
 .L22:
 	b .L18
 .L23:
@@ -41,6 +43,8 @@ if_if_Else:
 	b .L24
 .L24:
 	b .L19
+.L25:
+.L26:
 .L27:
 	b .L24
 

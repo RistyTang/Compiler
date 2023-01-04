@@ -327,6 +327,8 @@ addr_len0:
 	ldr r5, =-548
 	str r4, [fp, r5]
 	b .L231
+.L227:
+.L228:
 .L229:
 	b .L226
 .L231:
@@ -375,6 +377,8 @@ addr_len0:
 	ldr r5, =-548
 	str r4, [fp, r5]
 	b .L238
+.L234:
+.L235:
 .L236:
 	b .L233
 .L238:
@@ -413,6 +417,8 @@ addr_len0:
 	ldr r4, =-548
 	str r5, [fp, r4]
 	b .L244
+.L241:
+.L242:
 .L243:
 	b .L240
 .L244:
@@ -453,6 +459,8 @@ addr_len0:
 	cmp r4, #0
 	bne .L266
 	b .L271
+.L247:
+.L248:
 .L249:
 	b .L246
 .L251:
@@ -515,6 +523,8 @@ addr_len1:
 	ldr r4, =-548
 	str r5, [fp, r4]
 	b .L244
+.L254:
+.L255:
 .L256:
 	b .L253
 .L259:
@@ -576,6 +586,8 @@ addr_len1:
 	ldr r4, =-536
 	str r5, [fp, r4]
 	b .L251
+.L262:
+.L263:
 .L264:
 	b .L260
 .L266:
@@ -595,6 +607,8 @@ addr_len1:
 	ldr r5, =-548
 	str r4, [fp, r5]
 	b .L273
+.L269:
+.L270:
 .L271:
 	b .L267
 .L273:
@@ -635,6 +649,8 @@ addr_len1:
 	add sp, sp, r1
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L276:
+.L277:
 .L278:
 	b .L275
 

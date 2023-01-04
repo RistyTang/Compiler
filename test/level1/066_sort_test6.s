@@ -47,6 +47,8 @@ counting_sort:
 	b .L115
 .L117:
 	b .L121
+.L118:
+.L119:
 .L120:
 	b .L117
 .L121:
@@ -91,6 +93,8 @@ counting_sort:
 	ldr r4, =1
 	str r4, [fp, #-4]
 	b .L132
+.L124:
+.L125:
 .L126:
 	b .L123
 .L132:
@@ -132,6 +136,8 @@ counting_sort:
 	ldr r4, [fp, #-56]
 	str r4, [fp, #-8]
 	b .L140
+.L135:
+.L136:
 .L137:
 	b .L134
 .L140:
@@ -208,6 +214,8 @@ addr_n0:
 	add sp, sp, #64
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L143:
+.L144:
 .L145:
 	b .L142
 
@@ -361,6 +369,8 @@ main:
 	add sp, sp, #88
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L164:
+.L165:
 .L166:
 	b .L163
 

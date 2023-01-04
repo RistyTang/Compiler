@@ -41,8 +41,10 @@ my_getint:
 	ldr r4, [fp, #-4]
 	str r4, [fp, #-8]
 	b .L89
+.L74:
 .L75:
 	b .L73
+.L76:
 .L77:
 	b .L71
 .L78:
@@ -56,8 +58,12 @@ my_getint:
 	movle r4, #0
 	bgt .L77
 	b .L86
+.L81:
+.L82:
 .L83:
 	b .L80
+.L84:
+.L85:
 .L86:
 	b .L78
 .L87:
@@ -88,8 +94,10 @@ my_getint:
 	add sp, sp, #8
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L92:
 .L93:
 	b .L91
+.L94:
 .L95:
 	ldr r4, [fp, #-8]
 	ldr r5, =10
@@ -109,8 +117,12 @@ my_getint:
 	movgt r4, #0
 	ble .L95
 	b .L104
+.L99:
+.L100:
 .L101:
 	b .L96
+.L102:
+.L103:
 .L104:
 	b .L96
 .L105:
@@ -244,6 +256,8 @@ main:
 	add sp, sp, #8
 	pop {r4, r5, fp, lr}
 	bx lr
+.L128:
+.L129:
 .L130:
 	b .L127
 

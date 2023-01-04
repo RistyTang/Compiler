@@ -42,6 +42,8 @@ main:
 	add sp, sp, #16
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L35:
+.L36:
 .L37:
 	b .L34
 .L39:
@@ -68,6 +70,8 @@ main:
 	bl putint
 	mov r4, r0
 	b .L34
+.L42:
+.L43:
 .L44:
 	b .L41
 .L45:
@@ -92,6 +96,8 @@ main:
 	b .L46
 .L46:
 	b .L39
+.L47:
+.L48:
 .L49:
 	b .L46
 

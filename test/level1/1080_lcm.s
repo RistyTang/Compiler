@@ -44,6 +44,8 @@ gcd:
 	sub r6, r4, r5
 	str r6, [fp, #-4]
 	b .L62
+.L59:
+.L60:
 .L61:
 	b .L58
 .L62:
@@ -73,6 +75,8 @@ gcd:
 	add sp, sp, #24
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L65:
+.L66:
 .L67:
 	b .L64
 

@@ -49,6 +49,8 @@ get_ans_se:
 	add sp, sp, #16
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L197:
+.L198:
 .L199:
 	b .L196
 
@@ -87,6 +89,8 @@ get_ans:
 	add sp, sp, #16
 	pop {r4, r5, r6, fp, lr}
 	bx lr
+.L207:
+.L208:
 .L209:
 	b .L206
 

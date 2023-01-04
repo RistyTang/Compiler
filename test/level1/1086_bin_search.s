@@ -53,6 +53,8 @@ main:
 	sdiv r5, r6, r4
 	str r5, [fp, #-8]
 	b .L81
+.L73:
+.L74:
 .L75:
 	b .L72
 .L81:
@@ -107,8 +109,12 @@ main:
 	movge r4, #0
 	blt .L82
 	b .L91
+.L86:
+.L87:
 .L88:
 	b .L83
+.L89:
+.L90:
 .L91:
 	b .L83
 .L92:
@@ -123,6 +129,8 @@ main:
 	b .L94
 .L94:
 	b .L81
+.L96:
+.L97:
 .L98:
 	b .L93
 .L99:
@@ -150,6 +158,8 @@ main:
 	add sp, sp, #68
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L103:
+.L104:
 .L105:
 	b .L100
 

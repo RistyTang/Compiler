@@ -276,6 +276,8 @@ main:
 	add sp, sp, #12
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L143:
+.L144:
 .L145:
 	b .L142
 .L146:
@@ -320,6 +322,8 @@ main:
 	add r5, r4, #1
 	str r5, [fp, #-4]
 	b .L140
+.L149:
+.L150:
 .L151:
 	b .L148
 

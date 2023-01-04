@@ -44,6 +44,8 @@ fsqrt:
 	add sp, sp, #12
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L41:
+.L42:
 .L43:
 	b .L40
 

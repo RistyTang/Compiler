@@ -134,6 +134,8 @@ main:
 	add sp, sp, #4
 	pop {r4, r5, fp, lr}
 	bx lr
+.L63:
+.L64:
 .L65:
 	b .L62
 

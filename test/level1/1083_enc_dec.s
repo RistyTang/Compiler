@@ -32,6 +32,8 @@ enc:
 	add sp, sp, #4
 	pop {r4, r5, fp, lr}
 	bx lr
+.L41:
+.L42:
 .L43:
 	b .L39
 
@@ -65,6 +67,8 @@ dec:
 	add sp, sp, #4
 	pop {r4, r5, fp, lr}
 	bx lr
+.L49:
+.L50:
 .L51:
 	b .L47
 

@@ -35,6 +35,8 @@ canJump:
 	movle r4, #0
 	bgt .L90
 	b .L96
+.L87:
+.L88:
 .L89:
 	b .L86
 .L90:
@@ -47,6 +49,8 @@ canJump:
 	ldr r4, =0
 	str r4, [fp, #-8]
 	b .L99
+.L94:
+.L95:
 .L96:
 	b .L91
 .L99:
@@ -85,6 +89,8 @@ canJump:
 	sub r5, r4, #2
 	str r5, [fp, #-8]
 	b .L105
+.L102:
+.L103:
 .L104:
 	b .L101
 .L105:
@@ -124,6 +130,8 @@ canJump:
 	add sp, sp, #56
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L108:
+.L109:
 .L110:
 	b .L107
 .L112:
@@ -144,6 +152,8 @@ canJump:
 	b .L114
 .L114:
 	b .L122
+.L117:
+.L118:
 .L119:
 	b .L113
 .L122:
@@ -173,6 +183,8 @@ canJump:
 	sub r5, r4, #1
 	str r5, [fp, #-8]
 	b .L105
+.L125:
+.L126:
 .L127:
 	b .L124
 .L128:
@@ -190,6 +202,8 @@ canJump:
 	sub r5, r4, #1
 	str r5, [fp, #-4]
 	b .L122
+.L131:
+.L132:
 .L133:
 	b .L129
 

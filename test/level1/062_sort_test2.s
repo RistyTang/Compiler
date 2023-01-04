@@ -45,6 +45,8 @@ insertsort:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L76:
+.L77:
 .L78:
 	b .L75
 .L83:
@@ -100,8 +102,12 @@ insertsort:
 	movge r4, #0
 	blt .L84
 	b .L94
+.L87:
+.L88:
 .L89:
 	b .L85
+.L92:
+.L93:
 .L94:
 	b .L85
 
@@ -243,6 +249,8 @@ main:
 	add sp, sp, #48
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L105:
+.L106:
 .L107:
 	b .L104
 

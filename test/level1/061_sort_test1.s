@@ -38,6 +38,8 @@ bubblesort:
 	add sp, sp, #16
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L80:
+.L81:
 .L82:
 	b .L79
 .L83:
@@ -76,6 +78,8 @@ bubblesort:
 	add r5, r4, #1
 	str r5, [fp, #-12]
 	b .L77
+.L86:
+.L87:
 .L88:
 	b .L85
 .L89:
@@ -113,6 +117,8 @@ bubblesort:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L83
+.L95:
+.L96:
 .L97:
 	b .L90
 
@@ -254,6 +260,8 @@ main:
 	add sp, sp, #48
 	pop {r4, r5, r6, r7, fp, lr}
 	bx lr
+.L111:
+.L112:
 .L113:
 	b .L110
 

@@ -59,6 +59,8 @@ main:
 	ldr r4, =0
 	str r4, [fp, #-4]
 	b .L78
+.L68:
+.L69:
 .L70:
 	b .L67
 .L78:
@@ -90,8 +92,12 @@ main:
 	cmp r4, #0
 	beq .L79
 	b .L87
+.L82:
+.L83:
 .L84:
 	b .L80
+.L85:
+.L86:
 .L87:
 	b .L80
 .L88:
@@ -105,6 +111,8 @@ main:
 	add r5, r4, #1
 	str r5, [fp, #-76]
 	b .L78
+.L91:
+.L92:
 .L93:
 	b .L89
 .L94:
@@ -132,6 +140,8 @@ main:
 	add sp, sp, #76
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L97:
+.L98:
 .L99:
 	b .L95
 

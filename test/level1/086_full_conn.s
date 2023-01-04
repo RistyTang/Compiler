@@ -29,6 +29,8 @@ relu_reg:
 	movge r4, #0
 	blt .L948
 	b .L952
+.L945:
+.L946:
 .L947:
 	b .L944
 .L948:
@@ -43,6 +45,8 @@ relu_reg:
 	add sp, sp, #4
 	pop {r4, fp, lr}
 	bx lr
+.L950:
+.L951:
 .L952:
 	b .L949
 
@@ -3517,6 +3521,8 @@ model:
 	add sp, sp, #4
 	pop {r4, r5, r6, r7, r8, r9, fp, lr}
 	bx lr
+.L1707:
+.L1708:
 .L1709:
 	b .L956
 
@@ -3547,6 +3553,8 @@ main:
 	add sp, sp, #112
 	pop {r4, r5, r6, r7, r8, fp, lr}
 	bx lr
+.L1716:
+.L1717:
 .L1718:
 	b .L1715
 .L1720:
@@ -3573,6 +3581,8 @@ main:
 	cmp r4, #0
 	bne .L1734
 	b .L1738
+.L1723:
+.L1724:
 .L1725:
 	b .L1722
 .L1727:
@@ -3605,6 +3615,8 @@ main:
 	add r5, r4, #1
 	str r5, [fp, #-8]
 	b .L1720
+.L1730:
+.L1731:
 .L1732:
 	b .L1729
 .L1734:
@@ -3640,6 +3652,8 @@ main:
 	sub r5, r4, #1
 	str r5, [fp, #-112]
 	b .L1713
+.L1737:
 .L1738:
 	b .L1735
+.L1739:
 
