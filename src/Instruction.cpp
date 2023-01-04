@@ -333,7 +333,8 @@ MachineOperand* Instruction::genMachineOperand(Operand* ope) {
         auto id_se = dynamic_cast<IdentifierSymbolEntry*>(se);
         if (id_se->isGlobal())
             mope = new MachineOperand(id_se->toStr().c_str());
-        else if (id_se->isParam()) {
+        else if (id_se->isParam()) 
+        {
             // TODO: 这样分配的是虚拟寄存器 能对应到r0-r3嘛
             //  r4之后的参数需要一条load 哪里加 怎么判断是r4之后的参数
             if (id_se->getParamNo() < 4)
@@ -495,9 +496,9 @@ void BinaryInstruction::genMachineCode(AsmBuilder* builder) {
     }
     // 合法立即数的判定太复杂 简单判定255以上均load
     // 这里应该也不需要考虑负数
-    if (src2->isImm()) {
-        if ((opcode <= BinaryInstruction::OR &&
-             ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() >
+    if (src2->isImm()) 
+    {
+        if ((opcode <= BinaryInstruction::OR && ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() >
                  255) ||
             opcode >= BinaryInstruction::MUL) {
             auto internal_reg = genMachineVReg();

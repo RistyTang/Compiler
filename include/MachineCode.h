@@ -275,7 +275,7 @@ class MachineFunction {
 class MachineUnit 
 {
 private:
-    std::vector<SymbolEntry*> global_list;//新增
+    std::vector<SymbolEntry*> global_list;//全局常变量
     std::vector<MachineFunction*> func_list;
     void PrintGlobalDecl();
     int n;//新增

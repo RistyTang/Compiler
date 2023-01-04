@@ -470,7 +470,7 @@ MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr)
     this->paramsNum = ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
 };
 
-//POP指令的输出
+//将保存的寄存器都出栈
 void MachineBlock::outputBlockBx()
 {
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
@@ -479,21 +479,21 @@ void MachineBlock::outputBlockBx()
     cur_inst->output();
 }
 
+//store指令输出
 void MachineBlock::outputBlockStore(InsIterType it, bool& first, int& offset)
 {
     MachineOperand* operand = (*it)->getUse()[0];
-    if (operand->isReg() && operand->getReg() == 3) 
+    if (operand->isReg() && operand->getReg() == 3) //是寄存器且编号为3
     {
-        if (first) 
+        if (first) //第一次使用
         {
             first = false;
         } 
-        else 
+        else //如果不是的话就要重用r3寄存器传参
         {
             auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
             auto r3 = new MachineOperand(MachineOperand::REG, 3);
-            auto off =
-                new MachineOperand(MachineOperand::IMM, offset);
+            auto off = new MachineOperand(MachineOperand::IMM, offset);
             offset += 4;
             auto cur_inst = new LoadMInstruction(this, r3, fp, off);
             cur_inst->output();
@@ -505,13 +505,15 @@ void MachineBlock::outputBlockAdd(InsIterType it)
 {
     auto dst = (*it)->getDef()[0];
     auto src1 = (*it)->getUse()[0];
-    if (dst->isReg() && dst->getReg() == 13 && src1->isReg() &&
-        src1->getReg() == 13 && (*(it + 1))->isBX()) {
+    //抬高栈：dst和src1都是sp寄存器
+    if (dst->isReg() && dst->getReg() == 13 && src1->isReg() && src1->getReg() == 13 && (*(it + 1))->isBX()) 
+    {
         int size = parent->AllocSpace(0);
-        if (size < -255 || size > 255) {
+        if (size < -255 || size > 255) //非合法立即数
+        {
+            //用寄存器r1存
             auto r1 = new MachineOperand(MachineOperand::REG, 1);
-            auto off =
-                new MachineOperand(MachineOperand::IMM, size);
+            auto off = new MachineOperand(MachineOperand::IMM, size);
             (new LoadMInstruction(nullptr, r1, off))->output();
             (*it)->getUse()[1]->setReg(1);
         } else
@@ -521,34 +523,38 @@ void MachineBlock::outputBlockAdd(InsIterType it)
 
 void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& first, int num)
 {
-    if ((*it)->isBX()) {
+    if ((*it)->isBX()) //是分支指令
+    {
         outputBlockBx();
     }
-    if (num > 4 && (*it)->isStore()) {
+    if (num > 4 && (*it)->isStore()) //如果是存储指令且函数参数>4，r0~r3不够用
+    {
         outputBlockStore(it, first, offset);
     }
-    if ((*it)->isAdd()) {
+    if ((*it)->isAdd()) 
+    {
         outputBlockAdd(it);
     }
     (*it)->output();
     ++count;
     if (count % 500 == 0) 
     {
+        //	b .F0
         std::string temp="\tb .B"+std::to_string(label)+"\n";
+        //用于声明一个文字池，在使用LDR伪指令的时候，要在适当的地址加入LTORG声明文字池，
+        //这样就会把要加载的数据保存在文字池内，再用ARM的加载指令读出数据
         temp+=".LTORG\n";
         fprintf(yyout,"%s",temp.c_str());
-        //printWithTN("b .B%d", label);
-        //printWithArgs(".LTORG\n");
         parent->getParent()->printGlobal();
+        //
         temp=".B"+std::to_string(label++)+":\n";
         fprintf(yyout,"%s",temp.c_str());
-        //printWithArgs(".B%d:\n", label++);
     }
 }
 
 void MachineBlock::output() 
 {
-    bool first = true;//
+    bool first = true;//是第一次使用
     int offset = (parent->getSavedRegs().size() + 2) * 4;
     int num = parent->getParamsNum();
     int count = 0;
@@ -591,11 +597,12 @@ void MachineFunction::output()
     //获取当前偏移量
     int off = AllocSpace(0);
     auto size = new MachineOperand(MachineOperand::IMM, off);//operand为立即数off
+    //如果是非法立即数，先存入寄存器
     if (off < -255 || off > 255) 
     {
         //设置为4号寄存器
         auto r4 = new MachineOperand(MachineOperand::REG, 4);
-        //nullptr具体在哪个块未定，存到寄存器r4
+        //nullptr:具体在哪个块未定，存到寄存器r4
         (new LoadMInstruction(nullptr, r4, size))->output();
         //sp=sp-size抬高栈
         (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, r4))->output();
@@ -614,16 +621,21 @@ void MachineFunction::output()
         {
             continue;
         }
+        //	b .F0
         temp = "\tb .F"+std::to_string(parent->getN())+"\n";
+        //.LTORG
         temp+=".LTORG\n";
         fprintf(yyout,"%s",temp.c_str());
+        //全局常变量地址
         parent->printGlobal();
+        //.F0:
         fprintf(yyout, ".F%d:\n", parent->getN()-1);
         count = 0;
     }
     fprintf(yyout, "\n");
 }
 
+//获取寄存器
 std::vector<MachineOperand*> MachineFunction::getSavedRegs() 
 {
     std::vector<MachineOperand*> regs;
@@ -652,13 +664,13 @@ void MachineUnit::printIDSymbleEntry(IdentifierSymbolEntry* se)
     //TAPE_LEN:
     temp=se->toStr()+":\n";
     fprintf(yyout,"%s",temp.c_str());
-    //
+    //不是数组直接打印
     if (!se->getType()->isArray()) 
     {
         temp="\t.word "+std::to_string(se->getValue())+"\n";
         fprintf(yyout,"%s",temp.c_str());
     } 
-    else 
+    else //是数组的话依次打印
     {
         int n = se->getType()->getSize() / 32;
         int* p = se->getArrayValue();
@@ -670,9 +682,11 @@ void MachineUnit::printIDSymbleEntry(IdentifierSymbolEntry* se)
     }
 }
 
+//常量数组声明
 void MachineUnit::printConstIndices(std::vector<int> constIdx)
 {
-    
+    //.section 来定义一个段，每个段以段名开始，以下一段名或者文件结 尾结束
+    //.rodata用于维护只读数据，比如：常量字符串、带 const 修饰的全局变量和静态变量等
     fprintf(yyout,"\t.section .rodata\n");
     for (auto i : constIdx) 
     {
@@ -696,8 +710,11 @@ void MachineUnit::printZeroIndices(std::vector<int> zeroIdx)
 
 void MachineUnit::PrintGlobalDecl() 
 {
+    // TODO:
+    // You need to print global variable/const declarition code;
     std::vector<int> constIdx;
     std::vector<int> zeroIdx;
+    //先打印全局变量
     if (!global_list.empty())
     {
         fprintf(yyout, "\t.data\n");
@@ -736,28 +753,37 @@ void MachineUnit::output()
      * 2. Traverse all the function in func_list to print assembly code;
      * 3. Don't forget print bridge label at the end of assembly code!! */
     std::string temp;
+    //.arch armv8-a
     temp="\t.arch armv8-a\n";
+
     //	.arch_extension crc
     temp+="\t.arch_extension crc\n";
+
     //	.arm
     temp+="\t.arm\n";
     fprintf(yyout, "%s",temp.c_str());
+
+    //先打印全局常变量声明
     PrintGlobalDecl();
+
+    //代码段
     temp="\t.text\n";
     fprintf(yyout, "%s",temp.c_str());
+    //输出指令
     for (auto iter : func_list)
         iter->output();
     printGlobal();
 }
 
-void MachineUnit::insertGlobal(SymbolEntry* se) {
+void MachineUnit::insertGlobal(SymbolEntry* se) 
+{
     global_list.push_back(se);
 }
 
 void MachineUnit::printGlobal()
 {
     std::string temp;
-    for (auto s : global_list) 
+    for (auto s : global_list) //输出全局的常变量地址
     {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)s;
         //addr_n0:

@@ -4,7 +4,8 @@
 #include "LiveVariableAnalysis.h"
 #include "MachineCode.h"
 
-LinearScan::LinearScan(MachineUnit* unit) {
+LinearScan::LinearScan(MachineUnit* unit) 
+{
     this->unit = unit;
     // 这里不对r0-r3做分配嘛
     for (int i = 4; i < 11; i++)
