@@ -7,13 +7,15 @@
 LinearScan::LinearScan(MachineUnit* unit) 
 {
     this->unit = unit;
-    // 这里不对r0-r3做分配嘛
+    //r0~r3传参数
     for (int i = 4; i < 11; i++)
         regs.push_back(i);
 }
 
-void LinearScan::allocateRegisters() {
-    for (auto& f : unit->getFuncs()) {
+void LinearScan::allocateRegisters() 
+{
+    for (auto& f : unit->getFuncs()) 
+    {
         func = f;
         bool success;
         success = false;
@@ -29,7 +31,8 @@ void LinearScan::allocateRegisters() {
     }
 }
 
-void LinearScan::makeDuChains() {
+void LinearScan::makeDuChains() 
+{
     LiveVariableAnalysis lva;
     lva.pass(func);
     du_chains.clear();
@@ -63,7 +66,8 @@ void LinearScan::makeDuChains() {
     }
 }
 
-void LinearScan::computeLiveIntervals() {
+void LinearScan::computeLiveIntervals() 
+{
     makeDuChains();
     intervals.clear();
     for (auto& du_chain : du_chains) {
@@ -110,7 +114,9 @@ void LinearScan::computeLiveIntervals() {
     sort(intervals.begin(), intervals.end(), compareStart);
 }
 
-bool LinearScan::linearScanRegisterAllocation() {
+bool LinearScan::linearScanRegisterAllocation() 
+{
+    //TODO
     bool success = true;
     active.clear();
     regs.clear();
@@ -132,8 +138,10 @@ bool LinearScan::linearScanRegisterAllocation() {
     return success;
 }
 
-void LinearScan::modifyCode() {
-    for (auto& interval : intervals) {
+void LinearScan::modifyCode() 
+{
+    for (auto& interval : intervals) 
+    {
         func->addSavedRegs(interval->rreg);
         for (auto def : interval->defs)
             def->setReg(interval->rreg);
@@ -142,8 +150,10 @@ void LinearScan::modifyCode() {
     }
 }
 
-void LinearScan::genSpillCode() {
-    for (auto& interval : intervals) {
+void LinearScan::genSpillCode() 
+{
+    for (auto& interval : intervals) 
+    {
         if (!interval->spill)
             continue;
         // TODO
@@ -202,7 +212,9 @@ void LinearScan::genSpillCode() {
     }
 }
 
-void LinearScan::expireOldIntervals(Interval* interval) {
+void LinearScan::expireOldIntervals(Interval* interval) 
+{
+    //TODO
     auto it = active.begin();
     while (it != active.end()) {
         if ((*it)->end >= interval->start)
@@ -213,7 +225,9 @@ void LinearScan::expireOldIntervals(Interval* interval) {
     }
 }
 
-void LinearScan::spillAtInterval(Interval* interval) {
+void LinearScan::spillAtInterval(Interval* interval) 
+{
+    //TODO
     auto spill = active.back();
     if (spill->end > interval->end) {
         spill->spill = true;
@@ -225,7 +239,8 @@ void LinearScan::spillAtInterval(Interval* interval) {
     }
 }
 
-bool LinearScan::compareStart(Interval* a, Interval* b) {
+bool LinearScan::compareStart(Interval* a, Interval* b) 
+{
     return a->start < b->start;
 }
 
