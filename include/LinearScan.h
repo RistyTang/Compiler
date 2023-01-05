@@ -43,7 +43,10 @@ class LinearScan
     static bool compareEnd(Interval* a, Interval* b);
     void InitRegs();
     bool PopReg(int& res);
-
+    void genIntervalUse(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* use);
+    void genIntervalDef(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* def);
+    void genIntervalCode(Interval*& interval);
+    void insertActive(Interval* elem);
 public:
     LinearScan(MachineUnit* unit);
     void allocateRegisters();

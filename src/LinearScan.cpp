@@ -135,30 +135,6 @@ bool LinearScan::PopReg(int& res)
 bool LinearScan::linearScanRegisterAllocation() 
 {
     //TODO
-    
-    bool success = true;
-    active.clear();
-    regs.clear();
-    for (int i = 4; i < 11; i++)
-        regs.push_back(i);
-    for (auto& i : intervals) 
-    {
-        expireOldIntervals(i);
-        if (regs.empty()) 
-        {
-            spillAtInterval(i);
-            // 不知道是不是该这样
-            success = false;
-        } else 
-        {
-            i->rreg = regs.front();
-            regs.erase(regs.begin());
-            active.push_back(i);
-            sort(active.begin(), active.end(), compareEnd);
-        }
-    }
-    return success;
-   /*
    bool success = true;
     active.clear();
     InitRegs();
@@ -176,7 +152,6 @@ bool LinearScan::linearScanRegisterAllocation()
         }
     }
     return success;
-    */
 }
 
 void LinearScan::modifyCode() 
@@ -191,65 +166,73 @@ void LinearScan::modifyCode()
     }
 }
 
+void LinearScan::genIntervalUse(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* use){
+    auto temp = new MachineOperand(*use);
+    if (interval->disp > 255 || interval->disp < -255) 
+    {
+        auto operand = MachineOperand::newVReg();
+        auto inst1 = new LoadMInstruction(use->getParent()->getParent(), operand, off);
+        use->getParent()->insertBefore(inst1);
+ 
+        auto inst = new LoadMInstruction(use->getParent()->getParent(), temp,
+                                    fp, new MachineOperand(*operand));
+        use->getParent()->insertBefore(inst);
+    } 
+    else 
+    {
+        auto inst = new LoadMInstruction(use->getParent()->getParent(), temp, fp, off);
+        use->getParent()->insertBefore(inst);
+    }
+}
+
+void LinearScan::genIntervalDef(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* def)
+{
+    auto temp = new MachineOperand(*def);
+    if (interval->disp > 255 || interval->disp < -255) {
+        auto operand = MachineOperand::newVReg();
+        auto inst1 = new LoadMInstruction(def->getParent()->getParent(), operand, off);
+        def->getParent()->insertAfter(inst1);
+ 
+        auto inst = new StoreMInstruction(def->getParent()->getParent(), temp,
+                                    fp, new MachineOperand(*operand));
+ 
+        inst1->insertAfter(inst);
+ 
+    } else {
+        auto inst = new StoreMInstruction(def->getParent()->getParent(),
+                                        temp, fp, off);
+ 
+        def->getParent()->insertAfter(inst);
+    }
+ 
+}
+
+void LinearScan::genIntervalCode(Interval*& interval)
+{
+    if (!interval->spill)
+        return;
+    // TODO
+    /* HINT:
+        * The vreg should be spilled to memory.
+        * 1. insert ldr inst before the use of vreg
+        * 2. insert str inst after the def of vreg
+        */
+    interval->disp = -func->AllocSpace(4);
+    auto off = new MachineOperand(MachineOperand::IMM, interval->disp);
+    auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+    for (auto use : interval->uses) {
+        genIntervalUse(interval, off, fp, use);
+    }
+    for (auto def : interval->defs) {
+        genIntervalDef(interval, off, fp, def);
+    }
+}
+
 void LinearScan::genSpillCode() 
 {
     for (auto& interval : intervals) 
     {
-        if (!interval->spill)
-            continue;
-        // TODO
-        /* HINT:
-         * The vreg should be spilled to memory.
-         * 1. insert ldr inst before the use of vreg
-         * 2. insert str inst after the def of vreg
-         */
-        interval->disp = -func->AllocSpace(4);
-        auto off = new MachineOperand(MachineOperand::IMM, interval->disp);
-        auto fp = new MachineOperand(MachineOperand::REG, 11);
-        for (auto use : interval->uses) {
-            auto temp = new MachineOperand(*use);
-            MachineOperand* operand = nullptr;
-            if (interval->disp > 255 || interval->disp < -255) {
-                operand = new MachineOperand(MachineOperand::VREG,
-                                             SymbolTable::getLabel());
-                auto inst1 = new LoadMInstruction(use->getParent()->getParent(),
-                                                  operand, off);
-                use->getParent()->insertBefore(inst1);
-            }
-            if (operand) {
-                auto inst =
-                    new LoadMInstruction(use->getParent()->getParent(), temp,
-                                         fp, new MachineOperand(*operand));
-                use->getParent()->insertBefore(inst);
-            } else {
-                auto inst = new LoadMInstruction(use->getParent()->getParent(),
-                                                 temp, fp, off);
-                use->getParent()->insertBefore(inst);
-            }
-        }
-        for (auto def : interval->defs) {
-            auto temp = new MachineOperand(*def);
-            MachineOperand* operand = nullptr;
-            MachineInstruction *inst1 = nullptr, *inst = nullptr;
-            if (interval->disp > 255 || interval->disp < -255) {
-                operand = new MachineOperand(MachineOperand::VREG,
-                                             SymbolTable::getLabel());
-                inst1 = new LoadMInstruction(def->getParent()->getParent(),
-                                             operand, off);
-                def->getParent()->insertAfter(inst1);
-            }
-            if (operand)
-                inst =
-                    new StoreMInstruction(def->getParent()->getParent(), temp,
-                                          fp, new MachineOperand(*operand));
-            else
-                inst = new StoreMInstruction(def->getParent()->getParent(),
-                                             temp, fp, off);
-            if (inst1)
-                inst1->insertAfter(inst);
-            else
-                def->getParent()->insertAfter(inst);
-        }
+        genIntervalCode(interval);
     }
 }
 
@@ -259,24 +242,32 @@ void LinearScan::expireOldIntervals(Interval* interval)
     auto it = active.begin();
     while (it != active.end()) {
         if ((*it)->end >= interval->start)
-            return;
-        regs.push_back((*it)->rreg);
-        it = active.erase(find(active.begin(), active.end(), *it));
-        sort(regs.begin(), regs.end());
+            break;
+        regs.emplace_back((*it)->rreg);
+        it = active.erase(it);
     }
+    sort(regs.begin(), regs.end());
+}
+
+void LinearScan::insertActive(Interval* elem)
+{
+    active.emplace_back(elem);
+    sort(active.begin(), active.end(), [](Interval* a, Interval* b){return a->end < b->end;});
 }
 
 void LinearScan::spillAtInterval(Interval* interval) 
 {
-    //TODO
+     //TODO
     auto spill = active.back();
-    if (spill->end > interval->end) {
+    if (spill->end <= interval->end) 
+    {
+        interval->spill = true;
+    } 
+    else 
+    {
         spill->spill = true;
         interval->rreg = spill->rreg;
-        active.push_back(interval);
-        sort(active.begin(), active.end(), compareEnd);
-    } else {
-        interval->spill = true;
+        insertActive(interval);
     }
 }
 

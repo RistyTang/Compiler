@@ -60,6 +60,8 @@ class MachineOperand {
     std::string getOperandString();
     enum RegType { FP=11,SP=13,LR=14,PC=15 };
     static MachineOperand* newReg(RegType);
+    static MachineOperand* newVReg();
+    //MachineBlock* getParentBlock() { return this->parent->getParent(); };
 };
 
 class MachineInstruction 

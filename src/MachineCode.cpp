@@ -123,6 +123,11 @@ MachineOperand* MachineOperand::newReg(RegType regType)
     return new MachineOperand(MachineOperand::REG, regType);
 }
 
+MachineOperand* MachineOperand::newVReg()
+{
+    return new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
+}
+
 std::string MachineInstruction::getCondString()
 {
     switch (cond) 

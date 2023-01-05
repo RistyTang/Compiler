@@ -1,1 +1,0 @@
-cannot initialize return object of type 'i32' with an rvalue of type 'i32'
