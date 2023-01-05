@@ -114,21 +114,43 @@ void LinearScan::computeLiveIntervals()
     sort(intervals.begin(), intervals.end(), compareStart);
 }
 
+void LinearScan::InitRegs()
+{
+    regs.clear();
+    for (int i = 4; i < 11; i++){
+        regs.emplace_back(i);
+    }
+}
+
+bool LinearScan::PopReg(int& res)
+{
+    if (regs.empty()) {
+        return false;
+    }
+    res = *regs.begin();
+    regs.erase(regs.begin());
+    return true;
+}
+
 bool LinearScan::linearScanRegisterAllocation() 
 {
     //TODO
+    
     bool success = true;
     active.clear();
     regs.clear();
     for (int i = 4; i < 11; i++)
         regs.push_back(i);
-    for (auto& i : intervals) {
+    for (auto& i : intervals) 
+    {
         expireOldIntervals(i);
-        if (regs.empty()) {
+        if (regs.empty()) 
+        {
             spillAtInterval(i);
             // 不知道是不是该这样
             success = false;
-        } else {
+        } else 
+        {
             i->rreg = regs.front();
             regs.erase(regs.begin());
             active.push_back(i);
@@ -136,6 +158,25 @@ bool LinearScan::linearScanRegisterAllocation()
         }
     }
     return success;
+   /*
+   bool success = true;
+    active.clear();
+    InitRegs();
+    for (auto& i : intervals) 
+    {
+        expireOldIntervals(i);
+        int allocateReg;
+        if (PopReg(allocateReg)){
+            i->rreg = allocateReg;
+            insertActive(i);
+        } else {
+            spillAtInterval(i);
+            // 不知道是不是该这样
+            success = false;
+        }
+    }
+    return success;
+    */
 }
 
 void LinearScan::modifyCode() 

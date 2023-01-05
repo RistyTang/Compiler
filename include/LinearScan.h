@@ -41,6 +41,8 @@ class LinearScan
     //新增
     std::vector<Interval*> active;
     static bool compareEnd(Interval* a, Interval* b);
+    void InitRegs();
+    bool PopReg(int& res);
 
 public:
     LinearScan(MachineUnit* unit);
