@@ -150,6 +150,7 @@ class MovMInstruction : public MachineInstruction {
     std::string getMovCodeString();
 };
 
+//分支跳转指令
 class BranchMInstruction : public MachineInstruction {
    public:
     enum opType { B, BL, BX };

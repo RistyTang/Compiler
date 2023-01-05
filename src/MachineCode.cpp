@@ -31,7 +31,6 @@ bool MachineOperand::operator==(const MachineOperand& a) const
     return this->reg_no == a.reg_no;
 }
 
-//
 bool MachineOperand::operator<(const MachineOperand& a) const 
 {
     if (this->type == a.type) 
@@ -706,7 +705,6 @@ void MachineUnit::printZeroIndices(std::vector<int> zeroIdx)
         }
     }
 }
-
 
 void MachineUnit::PrintGlobalDecl() 
 {
