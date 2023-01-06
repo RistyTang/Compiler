@@ -120,54 +120,6 @@ void FunctionDef::genCode() {
 BinaryExpr::BinaryExpr(SymbolEntry* se, int op, ExprNode* expr1, ExprNode* expr2)
     : ExprNode(se), op(op), expr1(expr1), expr2(expr2) {
     dst = new Operand(se);
-    /*std::string op_str;
-    switch (op) {
-        case ADD:
-            op_str = "+";
-            break;
-        case SUB:
-            op_str = "-";
-            break;
-        case MUL:
-            op_str = "*";
-            break;
-        case DIV:
-            op_str = "/";
-            break;
-        case MOD:
-            op_str = "%";
-            break;
-        case AND:
-            op_str = "&&";
-            break;
-        case OR:
-            op_str = "||";
-            break;
-        case LESS:
-            op_str = "<";
-            break;
-        case LESSEQUAL:
-            op_str = "<=";
-            break;
-        case GREATER:
-            op_str = ">";
-            break;
-        case GREATEREQUAL:
-            op_str = ">=";
-            break;
-        case EQUAL:
-            op_str = "==";
-            break;
-        case NOTEQUAL:
-            op_str = "!=";
-            break;
-    }
-    if (expr1->getType()->isVoid() || expr2->getType()->isVoid()) {
-        fprintf(stderr,
-                "invalid operand of type \'void\' to binary \'opeartor%s\'\n",
-                op_str.c_str());
-    }
-    */
     //结果为bool型的运算符
     if (op >= BinaryExpr::AND && op <= BinaryExpr::NOTEQUAL) {
         type = TypeSystem::boolType;
@@ -820,8 +772,6 @@ void WhileStmt::genCode() {
 
     backPatch(cond->trueList(), while_bb);
     backPatch(cond->falseList(), end_bb);
-    // Operand* condoperand= cond->getOperand();
-    // new CondBrInstruction(while_bb,end_bb,condoperand,cond_bb);
 
     builder->setInsertBB(while_bb);
     stmt->genCode();
@@ -928,9 +878,6 @@ void AssignStmt::genCode() {
         ((Id*)lval)->setLeft();
         lval->genCode();
         addr = lval->getOperand();
-        // Type* type = new PointerType(TypeSystem::intType);
-        // SymbolEntry* addr_se = new TemporarySymbolEntry(type,
-        // SymbolTable::getLabel()); addr = new Operand(addr_se);
     }
     Operand* src = expr->getOperand();
     /***
