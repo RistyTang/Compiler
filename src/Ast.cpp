@@ -203,13 +203,13 @@ void BinaryExpr::genCode() {
         {
             Operand* dst = new Operand(new TemporarySymbolEntry(
                 TypeSystem::intType, SymbolTable::getLabel()));
-            new ZextInstruction(dst, src1, bb);
+            new ExtensionInstruction(dst, src1, bb);
             src1 = dst;
         }
         if (src2->getType()->getSize() == 1) {
             Operand* dst = new Operand(new TemporarySymbolEntry(
                 TypeSystem::intType, SymbolTable::getLabel()));
-            new ZextInstruction(dst, src2, bb);
+            new ExtensionInstruction(dst, src2, bb);
             src2 = dst;
         }
         int cmpopcode(-1);
@@ -818,7 +818,7 @@ void OneOpExpr::genCode() {
             new CmpInstruction(CmpInstruction::NE, temp1, src,digit->getOperand(),bb);
             src = temp1;
         }
-        new XorInstruction(dst, src, bb);
+        new BinaryInstruction(BinaryInstruction::NOT, dst, src, src, bb);
 
         //设置为bool类型
         dst -> getType() -> setKind(5);
@@ -828,7 +828,7 @@ void OneOpExpr::genCode() {
         if(src->getType()->isBool())
         {
             Operand* t =new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
-            new ZextInstruction(t,expr->getOperand(),bb);
+            new ExtensionInstruction(t,expr->getOperand(),bb);
             expr->SetDst(t);
             src = t;
         }
@@ -840,6 +840,7 @@ void OneOpExpr::genCode() {
     true_list = expr->trueList();
     false_list = expr->falseList();
 }
+
 void ExprNode::genCode() {
     // Todo
 }
@@ -1192,30 +1193,16 @@ int BinaryExpr::getValue() {
 
 OneOpExpr::OneOpExpr(SymbolEntry* se, int op, ExprNode* expr)
     : ExprNode(se, ONEOPEXPR), op(op), expr(expr) {
-    std::string op_str = op == OneOpExpr::NOT ? "!" : "-";
-    if (expr->getType()->isVoid()) {
-        fprintf(stderr,
-                "invalid operand of type \'void\' to unary \'opeartor%s\'\n",
-                op_str.c_str());
-    }
-    if (op == OneOpExpr::NOT) {
-        type = TypeSystem::intType;
-        dst = new Operand(se);
-        //如果此时右端expr也是一元表达式
-        if (expr->isOneOpExpr()) {
-            OneOpExpr* ue = (OneOpExpr*)expr;
-            //并且是!expr形式，说明为bool值
-            if (ue->getOp() == OneOpExpr::NOT) {
-                ue->setType(TypeSystem::boolType);
-            }
-        }
-    } else if (op == OneOpExpr::SUB) {
-        type = TypeSystem::intType;
-        dst = new Operand(se);
-        if (expr->isOneOpExpr()) {
-            OneOpExpr* ue = (OneOpExpr*)expr;
-            if (ue->getOp() == OneOpExpr::NOT)
-                ue->setType(TypeSystem::boolType);
+    type = TypeSystem::intType;
+    dst = new Operand(se);
+    //如果此时右端expr也是一元表达式
+    if(expr->isOneOpExpr())
+    {
+        OneOpExpr* temp=(OneOpExpr*)expr;
+        //并且是!expr形式，说明为bool值
+        if(temp->getOp() == OneOpExpr::NOT)
+        {
+            temp->setType(TypeSystem::boolType);
         }
     }
 };

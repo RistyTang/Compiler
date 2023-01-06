@@ -72,28 +72,38 @@ void BinaryInstruction::output() const {
     s1 = operands[0]->toStr();
     s2 = operands[1]->toStr();
     s3 = operands[2]->toStr();
-    type = operands[0]->getType()->toStr();
-    switch (opcode) {
-        case ADD:
-            op = "add";
-            break;
-        case SUB:
-            op = "sub";
-            break;
-        case MUL:
-            op = "mul";
-            break;
-        case DIV:
-            op = "sdiv";
-            break;
-        case MOD:
-            op = "srem";
-            break;
-        default:
-            break;
+    type = operands[1]->getType()->toStr();
+    if(opcode==NOT)
+    {
+        op="xor";
+        fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(), type.c_str(), s2.c_str(), "true");
+        return;
     }
-    fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(),
-            type.c_str(), s2.c_str(), s3.c_str());
+    else
+    {
+        switch (opcode) 
+        {
+            case ADD:
+                op = "add";
+                break;
+            case SUB:
+                op = "sub";
+                break;
+            case MUL:
+                op = "mul";
+                break;
+            case DIV:
+                op = "sdiv";
+                break;
+            case MOD:
+                op = "srem";
+                break;
+            default:
+                break;
+        }
+        fprintf(yyout, "  %s = %s %s %s, %s\n", s1.c_str(), op.c_str(),
+                type.c_str(), s2.c_str(), s3.c_str());
+    }
 }
 
 CmpInstruction::CmpInstruction(unsigned opcode,
@@ -513,6 +523,17 @@ void BinaryInstruction::genMachineCode(AsmBuilder* builder) {
      * instructions, such as MUL, CMP, you need to deal with this situation,
      * too.*/
     MachineInstruction* cur_inst = nullptr;
+    if(opcode==NOT) {
+        auto trueOperand = genMachineImm(1);
+        auto falseOperand = genMachineImm(0);
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst,
+                                        trueOperand, MachineInstruction::EQ);
+        cur_block->InsertInst(cur_inst);
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst,
+                                   falseOperand, MachineInstruction::NE);
+        cur_block->InsertInst(cur_inst);
+        return;
+    }
     src1 = replaceCmpImm(builder, src1);
     // 合法立即数的判定太复杂 简单判定255以上均load
     // 这里应该也不需要考虑负数
@@ -543,7 +564,7 @@ void BinaryInstruction::genMachineCode(AsmBuilder* builder) {
             // c = a - c
     cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::SUB, dst, src1, dst1);
     cur_block->InsertInst(cur_inst);
-        }
+}
  
 void insertCmpMov(AsmBuilder* builder, MachineOperand* dst, MachineOperand* op, unsigned opcode){
     auto cur_block = builder->getBlock();
@@ -674,7 +695,7 @@ CallInstruction::~CallInstruction() {
         operands[i]->removeUse(this);
 }
 
-ZextInstruction::ZextInstruction(Operand* dst,
+ExtensionInstruction::ExtensionInstruction(Operand* dst,
                                  Operand* src,
                                  BasicBlock* insert_bb)
     : Instruction(ZEXT, insert_bb) {
@@ -684,43 +705,20 @@ ZextInstruction::ZextInstruction(Operand* dst,
     src->addUse(this);
 }
 
-void ZextInstruction::output() const {
+void ExtensionInstruction::output() const {
     Operand* dst = operands[0];
     Operand* src = operands[1];
     fprintf(yyout, "  %s = zext %s %s to i32\n", dst->toStr().c_str(),
             src->getType()->toStr().c_str(), src->toStr().c_str());
 }
 
-ZextInstruction::~ZextInstruction() {
+ExtensionInstruction::~ExtensionInstruction() {
     operands[0]->setDef(nullptr);
     if (operands[0]->usersNum() == 0)
         delete operands[0];
     operands[1]->removeUse(this);
 }
 
-XorInstruction::XorInstruction(Operand* dst,
-                               Operand* src,
-                               BasicBlock* insert_bb)
-    : Instruction(XOR, insert_bb) {
-    operands.push_back(dst);
-    operands.push_back(src);
-    dst->setDef(this);
-    src->addUse(this);
-}
-
-void XorInstruction::output() const {
-    Operand* dst = operands[0];
-    Operand* src = operands[1];
-    fprintf(yyout, "  %s = xor %s %s, true\n", dst->toStr().c_str(),
-            src->getType()->toStr().c_str(), src->toStr().c_str());
-}
-
-XorInstruction::~XorInstruction() {
-    operands[0]->setDef(nullptr);
-    if (operands[0]->usersNum() == 0)
-        delete operands[0];
-    operands[1]->removeUse(this);
-}
 
 GepInstruction::GepInstruction(Operand* dst,
                                Operand* arr,
@@ -823,7 +821,7 @@ void CallInstruction::genMachineCode(AsmBuilder* builder) {
     }
 }
 
-void ZextInstruction::genMachineCode(AsmBuilder* builder) {
+void ExtensionInstruction::genMachineCode(AsmBuilder* builder) {
     auto cur_block = builder->getBlock();
     auto dst = genMachineOperand(operands[0]);
     auto src = genMachineOperand(operands[1]);
@@ -832,18 +830,6 @@ void ZextInstruction::genMachineCode(AsmBuilder* builder) {
     cur_block->InsertInst(cur_inst);
 }
 
-void XorInstruction::genMachineCode(AsmBuilder* builder) {
-    auto cur_block = builder->getBlock();
-    auto dst = genMachineOperand(operands[0]);
-    auto trueOperand = genMachineImm(1);
-    auto falseOperand = genMachineImm(0);
-    auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst,
-                                        trueOperand, MachineInstruction::EQ);
-    cur_block->InsertInst(cur_inst);
-    cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst,
-                                   falseOperand, MachineInstruction::NE);
-    cur_block->InsertInst(cur_inst);
-}
 
 void GepInstruction::genMachineCode(AsmBuilder* builder) {
     auto cur_block = builder->getBlock();

@@ -184,23 +184,19 @@ class CallInstruction : public Instruction {
     void genMachineCode(AsmBuilder*);
 };
 
-class ZextInstruction : public Instruction {
+
+//%6 = zext i1 %5 to i32
+//将1位的bool扩展到32位
+class ExtensionInstruction : public Instruction {
    public:
-    ZextInstruction(Operand* dst,
+    ExtensionInstruction(Operand* dst,
                     Operand* src,
                     BasicBlock* insert_bb = nullptr);
-    ~ZextInstruction();
+    ~ExtensionInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
 };
 
-class XorInstruction : public Instruction {
-   public:
-    XorInstruction(Operand* dst, Operand* src, BasicBlock* insert_bb = nullptr);
-    ~XorInstruction();
-    void output() const;
-    void genMachineCode(AsmBuilder*);
-};
 
 class GepInstruction : public Instruction {
    private:
