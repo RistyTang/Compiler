@@ -518,8 +518,7 @@ void BinaryInstruction::genMachineCode(AsmBuilder* builder) {
     // 这里应该也不需要考虑负数
     if (src2->isImm()) {
         if ((opcode <= BinaryInstruction::OR &&
-             ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() >
-                 255) ||
+             ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() > 255) ||
             opcode >= BinaryInstruction::MUL) {
             src2 = replaceCmpImm(builder, src2);
         }

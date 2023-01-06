@@ -68,11 +68,6 @@ std::string FunctionType::toStr() {
     return buffer.str();
 }
 
-std::string StringType::toStr() {
-    std::ostringstream buffer;
-    buffer << "const char[" << length << "]";
-    return buffer.str();
-}
 
 std::string PointerType::toStr() {
     std::ostringstream buffer;

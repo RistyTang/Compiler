@@ -61,15 +61,13 @@ class SymbolTable {
 class ConstantSymbolEntry : public SymbolEntry {
    private:
     int value;
-    std::string strValue;
 
    public:
     ConstantSymbolEntry(Type* type, int value);
-    ConstantSymbolEntry(Type* type, std::string strValue);
+    //ConstantSymbolEntry(Type* type, std::string strValue);
     ConstantSymbolEntry(Type* type);
     virtual ~ConstantSymbolEntry(){};
     int getValue() const;
-    std::string getStrValue() const;
     std::string toStr();
     // You can add any function you need here.
 };

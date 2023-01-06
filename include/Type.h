@@ -9,7 +9,7 @@ class Type {
     int kind;
 
    protected:
-    enum { INT, VOID, FUNC, PTR, ARRAY, BOOL, STRING };
+    enum { INT, VOID, FUNC, PTR, ARRAY, BOOL};
     int size;
 
    public:
@@ -22,7 +22,6 @@ class Type {
     bool isPtr() const { return kind == PTR; };
     bool isArray() const { return kind == ARRAY; };
     bool isBool() const {return kind == BOOL; };
-    bool isString() const { return kind == STRING; };
     int getKind() const { return kind; };
     int getSize() const { return size; };
     void setKind(int m) { this->kind=m; };
@@ -91,15 +90,6 @@ class ArrayType : public Type {
     Type* getArrayType() const { return arrayType; };
 };
 
-class StringType : public Type {
-   private:
-    int length;
-
-   public:
-    StringType(int length) : Type(Type::STRING), length(length){};
-    int getLength() const { return length; };
-    std::string toStr();
-};
 
 class PointerType : public Type {
    private:
