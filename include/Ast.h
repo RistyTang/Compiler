@@ -52,7 +52,7 @@ class ExprNode : public Node {
     int kind;
 
    protected:
-    enum { EXPR, INITVALUELISTEXPR, IMPLICTCASTEXPR, ONEOPEXPR };
+    enum { EXPR, INITVALUELISTEXPR, ONEOPEXPR };
     Type* type;
     SymbolEntry* symbolEntry;
     Operand* dst;  // The result of the subtree is stored into dst.
@@ -64,7 +64,6 @@ class ExprNode : public Node {
     virtual int getValue() { return -1; };
     bool isExpr() const { return kind == EXPR; };
     bool isInitValueListExpr() const { return kind == INITVALUELISTEXPR; };
-    bool isImplictCastExpr() const { return kind == IMPLICTCASTEXPR; };
     //是一元运算
     bool isOneOpExpr() const { return kind == ONEOPEXPR; };
     SymbolEntry* getSymPtr() { return symbolEntry; };
@@ -200,24 +199,6 @@ class InitValueListExpr : public ExprNode {
     void fill();
 };
 
-// 仅用于int2bool
-class ImplictCastExpr : public ExprNode {
-   private:
-    ExprNode* expr;
-
-   public:
-    ImplictCastExpr(ExprNode* expr)
-        : ExprNode(nullptr, IMPLICTCASTEXPR), expr(expr) {
-        type = TypeSystem::boolType;
-        dst = new Operand(
-            new TemporarySymbolEntry(type, SymbolTable::getLabel()));
-    };
-    void output(int level);
-    ExprNode* getExpr() const { return expr; };
-    void typeCheck() { };
-    void genCode();
-};
-
 //建立这个class的作用是为了把stmt类型转化为node
 //因此能够打印成节点
 class StmtNode : public Node {
@@ -291,11 +272,6 @@ class IfStmt : public StmtNode {
    public:
     IfStmt(ExprNode* cond, StmtNode* thenStmt)
         : cond(cond), thenStmt(thenStmt) {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
-        
     };
     void output(int level);
     void typeCheck();
@@ -310,12 +286,7 @@ class IfElseStmt : public StmtNode {
 
    public:
     IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt)
-        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) 
-        {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
+        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) {
     };
     void output(int level);
     void typeCheck();
@@ -329,12 +300,7 @@ class WhileStmt : public StmtNode {
     BasicBlock* cond_bb;//每次循环都要验证，因此新做一个bb
     BasicBlock* end_bb;//为break语句设置
    public:
-    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) 
-    {
-        if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
-            ImplictCastExpr* temp = new ImplictCastExpr(cond);
-            this->cond = temp;
-        }
+    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) {
     };
     void setStmt(StmtNode* stmt){this->stmt = stmt;};
     void output(int level);

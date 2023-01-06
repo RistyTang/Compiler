@@ -372,9 +372,7 @@ void IfStmt::genCode() {
     //生成 cond 结点的中间代码
     cond->genCode();
     //如果条件cond不是bool类型
-    SymbolEntry* sym_tmp = cond->getSymPtr();
-    Type* type_tmp = sym_tmp ? sym_tmp->getType() : nullptr;
-    if(type_tmp && (type_tmp->toStr()=="i32"||type_tmp->toStr()=="i32()"))
+    if(cond->getType()->isInt() && cond->getType()->getSize() == 32)
     {
         BasicBlock* condbb=cond->builder->getInsertBB();
         Function* tempfunc = cond->builder->getInsertBB()->getParent();
@@ -382,7 +380,6 @@ void IfStmt::genCode() {
         BasicBlock* tempbb = new BasicBlock(tempfunc);
         BasicBlock* falseBB = new BasicBlock(tempfunc);
         Operand *temp = new Operand(new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel()));
-        this->cond->SetDst(temp);
         //在不相等时跳转，因此为NE
         new CmpInstruction(CmpInstruction::NE,
                             temp,
@@ -427,10 +424,7 @@ void IfElseStmt::genCode() {
     //先生成 cond 结点的中间代码
     cond->genCode();
     //如果条件cond不是bool类型
-    BasicBlock * bb = builder->getInsertBB();
-    SymbolEntry* sym_tmp = cond->getSymPtr();
-    Type* type_tmp = sym_tmp ? sym_tmp->getType() : nullptr;
-    if(type_tmp && (type_tmp->toStr()=="i32"||type_tmp->toStr()=="i32()"))
+    if(cond->getType()->isInt() && cond->getType()->getSize() == 32)
     {
         BasicBlock* condbb=cond->builder->getInsertBB();
         Function* tempfunc = cond->builder->getInsertBB()->getParent();
@@ -444,7 +438,6 @@ void IfElseStmt::genCode() {
                             cond->getOperand(),
                             new Operand(new ConstantSymbolEntry(TypeSystem::intType,0)),
                             condbb);//int转bool
-        new CondBrInstruction(then_bb,else_bb,temp,bb);
         cond->trueList().push_back(new CondBrInstruction(trueBB, tempbb, temp, condbb));
         cond->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
     }
@@ -747,9 +740,7 @@ void WhileStmt::genCode() {
     builder->setInsertBB(cond_bb);
     cond->genCode();
     //如果条件cond不是bool类型
-    SymbolEntry* sym_tmp = cond->getSymPtr();
-    Type* type_tmp = sym_tmp ? sym_tmp->getType() : nullptr;
-    if(type_tmp && (type_tmp->toStr()=="i32"||type_tmp->toStr()=="i32()"))
+    if(cond->getType()->isInt() && cond->getType()->getSize() == 32)
     {
         BasicBlock* condbb=cond->builder->getInsertBB();
         Function* tempfunc = cond->builder->getInsertBB()->getParent();
@@ -763,7 +754,6 @@ void WhileStmt::genCode() {
                             cond->getOperand(),
                             new Operand(new ConstantSymbolEntry(TypeSystem::intType,0)),
                             condbb);//int转bool
-        new CondBrInstruction(while_bb,end_bb,temp,bb);
         cond->trueList().push_back(new CondBrInstruction(trueBB, tempbb, temp, condbb));
         cond->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
     }
@@ -1337,12 +1327,6 @@ void InitValueListExpr::fill() {
     }
 }
 
-void ImplictCastExpr::output(int level) {
-    fprintf(yyout, "%*cImplictCastExpr\ttype: %s to %s\n", level, ' ',
-            expr->getType()->toStr().c_str(), type->toStr().c_str());
-    this->expr->output(level + 4);
-}
-
 void CompoundStmt::output(int level) {
     fprintf(yyout, "%*cCompoundStmt\n", level, ' ');
     if (stmt)
@@ -1424,18 +1408,3 @@ void FunctionDef::output(int level) {
     stmt->output(level + 4);
 }
 
-void ImplictCastExpr::genCode() {
-    expr->genCode();
-    BasicBlock* bb = builder->getInsertBB();
-    Function* func = bb->getParent();
-    BasicBlock* trueBB = new BasicBlock(func);
-    BasicBlock* tempbb = new BasicBlock(func);
-    BasicBlock* falseBB = new BasicBlock(func);
-
-    new CmpInstruction(
-        CmpInstruction::NE, this->dst, this->expr->getOperand(),
-        new Operand(new ConstantSymbolEntry(TypeSystem::intType, 0)), bb);
-    this->trueList().push_back(
-        new CondBrInstruction(trueBB, tempbb, this->dst, bb));
-    this->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
-}
