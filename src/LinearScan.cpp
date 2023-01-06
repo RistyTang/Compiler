@@ -284,6 +284,7 @@ bool LinearScan::compareStart(Interval* a, Interval* b)
     return a->start < b->start;
 }
 
+//新增比较
 bool LinearScan::compareEnd(Interval* a, Interval* b) 
 {
     return a->end < b->end;
