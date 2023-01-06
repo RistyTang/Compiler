@@ -295,6 +295,7 @@ class IfStmt : public StmtNode {
             ImplictCastExpr* temp = new ImplictCastExpr(cond);
             this->cond = temp;
         }
+        
     };
     void output(int level);
     void typeCheck();
@@ -309,7 +310,8 @@ class IfElseStmt : public StmtNode {
 
    public:
     IfElseStmt(ExprNode* cond, StmtNode* thenStmt, StmtNode* elseStmt)
-        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) {
+        : cond(cond), thenStmt(thenStmt), elseStmt(elseStmt) 
+        {
         if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
             ImplictCastExpr* temp = new ImplictCastExpr(cond);
             this->cond = temp;
@@ -327,7 +329,8 @@ class WhileStmt : public StmtNode {
     BasicBlock* cond_bb;//每次循环都要验证，因此新做一个bb
     BasicBlock* end_bb;//为break语句设置
    public:
-    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) {
+    WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) 
+    {
         if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
             ImplictCastExpr* temp = new ImplictCastExpr(cond);
             this->cond = temp;

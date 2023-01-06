@@ -180,6 +180,7 @@ void LinearScan::genIntervalUse(Interval*& interval, MachineOperand* off, Machin
     auto inst1 = new LoadMInstruction(use->getParent()->getParent(), operand, off);
     use->getParent()->insertBefore(inst1);
     //在操作该临时变量时插入对应的 LoadMInstruction 和 StoreMInstruction
+    
     auto inst = new LoadMInstruction(use->getParent()->getParent(), temp, fp, new MachineOperand(*operand));
     use->getParent()->insertBefore(inst);
 }
@@ -195,7 +196,7 @@ void LinearScan::genIntervalDef(Interval*& interval, MachineOperand* off, Machin
     //在操作该临时变量时插入对应的 LoadMInstruction 和 StoreMInstruction
     auto inst = new StoreMInstruction(def->getParent()->getParent(), temp, fp, new MachineOperand(*operand));
     inst1->insertAfter(inst);
- 
+    
 }
 
 void LinearScan::genIntervalCode(Interval*& interval)
@@ -220,7 +221,8 @@ void LinearScan::genIntervalCode(Interval*& interval)
     }
 
     //遍历其 DEF 指令的列表，在 DEF 指令后插入 StoreMInstruction，将其从目前的虚拟寄存器中存到栈内;
-    for (auto def : interval->defs) {
+    for (auto def : interval->defs) 
+    {
         genIntervalDef(interval, off, fp, def);
     }
 }

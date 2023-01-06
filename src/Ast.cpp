@@ -372,7 +372,6 @@ void IfStmt::genCode() {
     //生成 cond 结点的中间代码
     cond->genCode();
     //如果条件cond不是bool类型
-    BasicBlock * bb = builder->getInsertBB();
     SymbolEntry* sym_tmp = cond->getSymPtr();
     Type* type_tmp = sym_tmp ? sym_tmp->getType() : nullptr;
     if(type_tmp && (type_tmp->toStr()=="i32"||type_tmp->toStr()=="i32()"))
@@ -383,13 +382,13 @@ void IfStmt::genCode() {
         BasicBlock* tempbb = new BasicBlock(tempfunc);
         BasicBlock* falseBB = new BasicBlock(tempfunc);
         Operand *temp = new Operand(new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel()));
+        this->cond->SetDst(temp);
         //在不相等时跳转，因此为NE
         new CmpInstruction(CmpInstruction::NE,
                             temp,
                             cond->getOperand(),
                             new Operand(new ConstantSymbolEntry(TypeSystem::intType,0)),
                             condbb);//int转bool
-        new CondBrInstruction(then_bb,end_bb,temp,bb);
         cond->trueList().push_back(new CondBrInstruction(trueBB, tempbb, temp, condbb));
         cond->falseList().push_back(new UncondBrInstruction(falseBB, tempbb));
     }
