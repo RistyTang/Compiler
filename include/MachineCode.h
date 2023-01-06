@@ -44,8 +44,7 @@ class MachineOperand {
     bool isLabel() { return this->type == LABEL; };
     int getVal() { return this->val; };
     int getReg() { return this->reg_no; };
-    void setReg(int regno) 
-    {
+    void setReg(int regno) {
         this->type = REG;
         this->reg_no = regno;
     };
@@ -61,11 +60,12 @@ class MachineOperand {
     enum RegType { FP=11,SP=13,LR=14,PC=15 };
     static MachineOperand* newReg(RegType);
     static MachineOperand* newVReg();
-    //MachineBlock* getParentBlock() { return this->parent->getParent(); };
+    static MachineOperand* newImm(int val){
+        return new MachineOperand(MachineOperand::IMM, val);
+    }
 };
 
-class MachineInstruction 
-{
+class MachineInstruction {
 protected:
     MachineBlock* parent;
     int no;
@@ -216,6 +216,11 @@ class MachineBlock {
     };
     void InsertInst(MachineInstruction* inst) {
         this->inst_list.push_back(inst);
+    };
+    void InsertLoadInst(MachineOperand* dst, MachineOperand*& vreg) {
+        vreg = MachineOperand::newVReg();
+        auto cur_inst = new LoadMInstruction(this, vreg, dst);
+        this->InsertInst(cur_inst);
     };
     void addPred(MachineBlock* p) { this->pred.push_back(p); };
     void addSucc(MachineBlock* s) { this->succ.push_back(s); };

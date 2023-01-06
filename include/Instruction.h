@@ -30,7 +30,7 @@ class Instruction {
     MachineOperand* genMachineImm(int val);
     MachineOperand* genMachineLabel(int block_no);
     virtual void genMachineCode(AsmBuilder*) = 0;
-
+    void insertBranch(AsmBuilder* builder, BasicBlock* branch, bool set_cond);
    protected:
     unsigned instType;
     unsigned opcode;
@@ -105,7 +105,8 @@ class BinaryInstruction : public Instruction {
     ~BinaryInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
-    enum { SUB, ADD, AND, OR, MUL, DIV, MOD };
+    enum Type { SUB, ADD, AND, OR, MUL, DIV, MOD };
+    static BinaryMInstruction::opType toBinaryMType(BinaryInstruction::Type t);
 };
 
 class CmpInstruction : public Instruction {
@@ -119,6 +120,9 @@ class CmpInstruction : public Instruction {
     void output() const;
     void genMachineCode(AsmBuilder*);
     enum { E, NE, L, LE, G, GE };
+    bool isLessOrGreater(unsigned opcode){
+        return opcode == L || opcode == LE || opcode == G || opcode == GE;
+    }
 };
 
 // unconditional branch
@@ -160,6 +164,9 @@ class RetInstruction : public Instruction {
     ~RetInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
+    void insertOperand(AsmBuilder*);
+    void insertFunction(AsmBuilder*);
+    void insertBx(AsmBuilder*);
 };
 
 class CallInstruction : public Instruction {

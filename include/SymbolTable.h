@@ -172,6 +172,10 @@ public:
     int getLabel() const {return label;};
     void setOffset(int offset) { this->stack_offset = offset; };
     int getOffset() { return this->stack_offset; };
+    bool isOffsetOutbound(){
+        auto offset = getOffset();
+        return offset < -255 || offset > 255;
+    }
     // You can add any function you need here.
 };
 
