@@ -29,7 +29,7 @@ class LinearScan
     MachineFunction* func;//机器代码的函数
     std::vector<int> regs;
     std::map<MachineOperand*, std::set<MachineOperand*>> du_chains;
-    std::vector<Interval*> intervals;
+    std::vector<Interval*> intervals;//还未分配寄存器的活跃区间；所有的 interval 都按照开始位置进行递增排序
     static bool compareStart(Interval* a, Interval* b);
     void expireOldIntervals(Interval* interval);
     void spillAtInterval(Interval* interval);

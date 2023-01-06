@@ -128,6 +128,7 @@ MachineOperand* MachineOperand::newVReg()
     return new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
 }
 
+
 std::string MachineInstruction::getCondString()
 {
     switch (cond) 
@@ -394,6 +395,7 @@ void BranchMInstruction::output()
 
 CmpMInstruction::CmpMInstruction(MachineBlock* p, MachineOperand* src1, MachineOperand* src2, int cond) 
 {
+    //仿写
     this->parent = p;
     this->type = MachineInstruction::CMP;
     this->op = -1;

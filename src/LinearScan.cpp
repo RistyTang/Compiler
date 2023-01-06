@@ -26,7 +26,7 @@ void LinearScan::allocateRegisters()
             if (success)  // all vregs can be mapped to real regs
                 modifyCode();
             else  // spill vregs that can't be mapped to real regs
-                genSpillCode();
+                genSpillCode();//有临时变量被溢出到栈内
         }
     }
 }
@@ -132,22 +132,27 @@ bool LinearScan::PopReg(int& res)
     return true;
 }
 
+//线性扫描分配寄存器
 bool LinearScan::linearScanRegisterAllocation() 
 {
     //TODO
-   bool success = true;
+    bool success = true;
     active.clear();
     InitRegs();
     for (auto& i : intervals) 
     {
+        //step1
         expireOldIntervals(i);
+        //step2 判断 active 列表中 interval 的数目和可用的物理寄存器数目是否相等
         int allocateReg;
-        if (PopReg(allocateReg)){
+        if (PopReg(allocateReg))//分配寄存器
+        {
             i->rreg = allocateReg;
             insertActive(i);
-        } else {
-            spillAtInterval(i);
-            // 不知道是不是该这样
+        } 
+        else 
+        {
+            spillAtInterval(i);//寄存器溢出操作
             success = false;
         }
     }
@@ -166,44 +171,30 @@ void LinearScan::modifyCode()
     }
 }
 
-void LinearScan::genIntervalUse(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* use){
+void LinearScan::genIntervalUse(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* use)
+{
+    //获取use指令列表
     auto temp = new MachineOperand(*use);
-    if (interval->disp > 255 || interval->disp < -255) 
-    {
-        auto operand = MachineOperand::newVReg();
-        auto inst1 = new LoadMInstruction(use->getParent()->getParent(), operand, off);
-        use->getParent()->insertBefore(inst1);
- 
-        auto inst = new LoadMInstruction(use->getParent()->getParent(), temp,
-                                    fp, new MachineOperand(*operand));
-        use->getParent()->insertBefore(inst);
-    } 
-    else 
-    {
-        auto inst = new LoadMInstruction(use->getParent()->getParent(), temp, fp, off);
-        use->getParent()->insertBefore(inst);
-    }
+    //在 USE 指令前插入 LoadMInstruction，将其从栈内加载到目前的虚拟寄存器中
+    auto operand = MachineOperand::newVReg();
+    auto inst1 = new LoadMInstruction(use->getParent()->getParent(), operand, off);
+    use->getParent()->insertBefore(inst1);
+    //在操作该临时变量时插入对应的 LoadMInstruction 和 StoreMInstruction
+    auto inst = new LoadMInstruction(use->getParent()->getParent(), temp, fp, new MachineOperand(*operand));
+    use->getParent()->insertBefore(inst);
 }
 
 void LinearScan::genIntervalDef(Interval*& interval, MachineOperand* off, MachineOperand* fp, MachineOperand* def)
 {
+    //获取def指令列表
     auto temp = new MachineOperand(*def);
-    if (interval->disp > 255 || interval->disp < -255) {
-        auto operand = MachineOperand::newVReg();
-        auto inst1 = new LoadMInstruction(def->getParent()->getParent(), operand, off);
-        def->getParent()->insertAfter(inst1);
- 
-        auto inst = new StoreMInstruction(def->getParent()->getParent(), temp,
-                                    fp, new MachineOperand(*operand));
- 
-        inst1->insertAfter(inst);
- 
-    } else {
-        auto inst = new StoreMInstruction(def->getParent()->getParent(),
-                                        temp, fp, off);
- 
-        def->getParent()->insertAfter(inst);
-    }
+    //在 DEF 指令后插入 StoreMInstruction，将其从目前的虚拟寄存器中存到栈内;
+    auto operand = MachineOperand::newVReg();
+    auto inst1 = new LoadMInstruction(def->getParent()->getParent(), operand, off);
+    def->getParent()->insertAfter(inst1);
+    //在操作该临时变量时插入对应的 LoadMInstruction 和 StoreMInstruction
+    auto inst = new StoreMInstruction(def->getParent()->getParent(), temp, fp, new MachineOperand(*operand));
+    inst1->insertAfter(inst);
  
 }
 
@@ -217,12 +208,18 @@ void LinearScan::genIntervalCode(Interval*& interval)
         * 1. insert ldr inst before the use of vreg
         * 2. insert str inst after the def of vreg
         */
+    //为其在栈内分配空间，获取当前在栈内相对 FP 的偏移
     interval->disp = -func->AllocSpace(4);
     auto off = new MachineOperand(MachineOperand::IMM, interval->disp);
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
-    for (auto use : interval->uses) {
+
+    //遍历其 USE 指令的列表，在 USE 指令前插入 LoadMInstruction，将其从栈内加载到目前的虚拟寄存器中;
+    for (auto use : interval->uses) 
+    {
         genIntervalUse(interval, off, fp, use);
     }
+
+    //遍历其 DEF 指令的列表，在 DEF 指令后插入 StoreMInstruction，将其从目前的虚拟寄存器中存到栈内;
     for (auto def : interval->defs) {
         genIntervalDef(interval, off, fp, def);
     }
@@ -230,6 +227,7 @@ void LinearScan::genIntervalCode(Interval*& interval)
 
 void LinearScan::genSpillCode() 
 {
+    //active列表中每一个interval进行寄存器分配。
     for (auto& interval : intervals) 
     {
         genIntervalCode(interval);
@@ -239,11 +237,20 @@ void LinearScan::genSpillCode()
 void LinearScan::expireOldIntervals(Interval* interval) 
 {
     //TODO
+    /*
+    遍历 active 列表，看该列表中是否存在结束时间早于 unhandled interval 的 interval（即与当前
+    unhandled interval 的活跃区间不冲突），若有，则说明此时为其分配的物理寄存器可以回收，可
+    以用于后续的分配，需要将其在 active 列表删除；
+    */
+    //遍历 active 列表
     auto it = active.begin();
-    while (it != active.end()) {
+    while (it != active.end()) 
+    {
+        //结束时间早于 unhandled interval 的 interval
         if ((*it)->end >= interval->start)
             break;
         regs.emplace_back((*it)->rreg);
+        //在 active 列表删除；
         it = active.erase(it);
     }
     sort(regs.begin(), regs.end());
@@ -255,19 +262,20 @@ void LinearScan::insertActive(Interval* elem)
     sort(active.begin(), active.end(), [](Interval* a, Interval* b){return a->end < b->end;});
 }
 
+//溢出
 void LinearScan::spillAtInterval(Interval* interval) 
 {
      //TODO
     auto spill = active.back();
-    if (spill->end <= interval->end) 
+    if (spill->end <= interval->end) //选择的是 unhandled interval 
     {
         interval->spill = true;
     } 
     else 
     {
-        spill->spill = true;
-        interval->rreg = spill->rreg;
-        insertActive(interval);
+        spill->spill = true;//置位其spill标志位
+        interval->rreg = spill->rreg;//同时将其占用的寄存器分配给 unhandled interval
+        insertActive(interval);//插入到 active 列表中
     }
 }
 
@@ -276,6 +284,7 @@ bool LinearScan::compareStart(Interval* a, Interval* b)
     return a->start < b->start;
 }
 
-bool LinearScan::compareEnd(Interval* a, Interval* b) {
+bool LinearScan::compareEnd(Interval* a, Interval* b) 
+{
     return a->end < b->end;
 }

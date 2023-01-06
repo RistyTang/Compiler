@@ -96,7 +96,7 @@ Stmt
     | FuncDef {$$ = $1;}
     | SEMICOLON 
     {
-        $$ = new BlankStmt();
+        $$ = new EmptyStmt();
     }
     ;
 LVal
@@ -272,7 +272,7 @@ UnaryExp
             fprintf(stderr,"所调用函数 \"%s\" 的形参实参个数不匹配\n",(char*)$1);
             //assert(1==0);
         }
-        $$ = new CallExpr(se, $3);
+        $$ = new FuncCallNode(se, $3);
     }
     | ID LPAREN RPAREN {
         SymbolEntry* se;
@@ -282,7 +282,7 @@ UnaryExp
         {    
             fprintf(stderr, "函数 \"%s\" 未定义\n", (char*)$1);
         }
-        $$ = new CallExpr(se);
+        $$ = new FuncCallNode(se);
     }
     | ADD UnaryExp {
         $$ = $2;
@@ -304,7 +304,7 @@ UnaryExp
         }
     | SUB UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel());
-        $$ = new UnaryExpr(se, UnaryExpr::SUB, $2);
+        $$ = new OneOpExpr(se, OneOpExpr::SUB, $2);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
         se1=$2->getSymPtr();
@@ -323,7 +323,7 @@ UnaryExp
     }
     | NOT UnaryExp {
         SymbolEntry* se = new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel());
-        $$ = new UnaryExpr(se, UnaryExpr::NOT, $2);
+        $$ = new OneOpExpr(se, OneOpExpr::NOT, $2);
         //类型检查07：检查两端如果是函数的话是否为void类型
         SymbolEntry* se1;
         se1=$2->getSymPtr();

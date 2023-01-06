@@ -9,7 +9,7 @@ class Type {
     int kind;
 
    protected:
-    enum { INT, VOID, FUNC, PTR, ARRAY, STRING };
+    enum { INT, VOID, FUNC, PTR, ARRAY, BOOL, STRING };
     int size;
 
    public:
@@ -21,9 +21,11 @@ class Type {
     bool isFunc() const { return kind == FUNC; };
     bool isPtr() const { return kind == PTR; };
     bool isArray() const { return kind == ARRAY; };
+    bool isBool() const {return kind == BOOL; };
     bool isString() const { return kind == STRING; };
     int getKind() const { return kind; };
     int getSize() const { return size; };
+    void setKind(int m) { this->kind=m; };
 };
 
 class IntType : public Type {

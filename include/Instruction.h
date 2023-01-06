@@ -105,7 +105,7 @@ class BinaryInstruction : public Instruction {
     ~BinaryInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
-    enum Type { SUB, ADD, AND, OR, MUL, DIV, MOD };
+    enum Type { SUB, ADD, AND, OR, MUL, DIV, MOD, NOT };
     static BinaryMInstruction::opType toBinaryMType(BinaryInstruction::Type t);
 };
 

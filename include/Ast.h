@@ -19,12 +19,13 @@ class Node {
    private:
     static int counter;
     int seq;
-    Node* next;
+    Node* next; // 用于标识符列表的处理
 
    protected:
-    std::vector<Instruction*> true_list;
-    std::vector<Instruction*> false_list;
+    std::vector<Instruction*> true_list;//跳转为真且跳转地址相同的跳转指令的链表
+    std::vector<Instruction*> false_list;//跳转false的跳转指令的链表
     static IRBuilder* builder;
+    //回填实现
     void backPatch(std::vector<Instruction*>& list, BasicBlock* bb);
     std::vector<Instruction*> merge(std::vector<Instruction*>& list1,
                                     std::vector<Instruction*>& list2);
@@ -36,7 +37,10 @@ class Node {
     virtual void output(int level) = 0;
     void setNext(Node* node);
     Node* getNext() { return next; }
-    virtual bool typeCheck(Type* retType = nullptr) = 0;
+    //类型检查函数
+    //在return时需要判别来自于哪个函数
+    virtual void typeCheck( ) = 0;
+    //中间代码翻译
     virtual void genCode() = 0;
     std::vector<Instruction*>& trueList() { return true_list; }
     std::vector<Instruction*>& falseList() { return false_list; }
@@ -48,7 +52,7 @@ class ExprNode : public Node {
     int kind;
 
    protected:
-    enum { EXPR, INITVALUELISTEXPR, IMPLICTCASTEXPR, UNARYEXPR };
+    enum { EXPR, INITVALUELISTEXPR, IMPLICTCASTEXPR, ONEOPEXPR };
     Type* type;
     SymbolEntry* symbolEntry;
     Operand* dst;  // The result of the subtree is stored into dst.
@@ -61,14 +65,17 @@ class ExprNode : public Node {
     bool isExpr() const { return kind == EXPR; };
     bool isInitValueListExpr() const { return kind == INITVALUELISTEXPR; };
     bool isImplictCastExpr() const { return kind == IMPLICTCASTEXPR; };
-    bool isUnaryExpr() const { return kind == UNARYEXPR; };
+    //是一元运算
+    bool isOneOpExpr() const { return kind == ONEOPEXPR; };
     SymbolEntry* getSymPtr() { return symbolEntry; };
-    virtual bool typeCheck(Type* retType = nullptr) { return false; };
+    virtual void typeCheck() {  };
     void genCode();
     virtual Type* getType() { return type; };
     Type* getOriginType() { return type; };
+    void SetDst(Operand* newdst) { this->dst=newdst; };
 };
 
+//二元运算符的实现
 class BinaryExpr : public ExprNode {
    private:
     int op;
@@ -93,34 +100,36 @@ class BinaryExpr : public ExprNode {
     BinaryExpr(SymbolEntry* se, int op, ExprNode* expr1, ExprNode* expr2);
     void output(int level);
     int getValue();
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
-class UnaryExpr : public ExprNode {
+//一元运算符的实现
+class OneOpExpr : public ExprNode {
    private:
     int op;
     ExprNode* expr;
 
    public:
     enum { NOT, SUB };
-    UnaryExpr(SymbolEntry* se, int op, ExprNode* expr);
+    OneOpExpr(SymbolEntry* se, int op, ExprNode* expr);
     void output(int level);
     int getValue();
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     int getOp() const { return op; };
     void setType(Type* type) { this->type = type; }
 };
 
-class CallExpr : public ExprNode {
+//函数调用节点
+class FuncCallNode : public ExprNode {
    private:
     ExprNode* param;
 
    public:
-    CallExpr(SymbolEntry* se, ExprNode* param = nullptr);
+    FuncCallNode(SymbolEntry* se, ExprNode* param = nullptr);
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -132,7 +141,7 @@ class Constant : public ExprNode {
     };
     void output(int level);
     int getValue();
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -159,7 +168,7 @@ class Id : public ExprNode {
         }
     };
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     int getValue();
     ExprNode* getArrIdx() { return arrIdx; };
@@ -168,12 +177,8 @@ class Id : public ExprNode {
     void setLeft() { left = true; }
 };
 
-class ImplicitValueInitExpr : public ExprNode {
-   public:
-    ImplicitValueInitExpr(SymbolEntry* se) : ExprNode(se){};
-    void output(int level);
-};
 
+//数组类型初值
 class InitValueListExpr : public ExprNode {
    private:
     ExprNode* expr;
@@ -190,7 +195,7 @@ class InitValueListExpr : public ExprNode {
     void addExpr(ExprNode* expr);
     bool isEmpty() { return childCnt == 0; };
     bool isFull();
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     void fill();
 };
@@ -209,9 +214,12 @@ class ImplictCastExpr : public ExprNode {
     };
     void output(int level);
     ExprNode* getExpr() const { return expr; };
-    bool typeCheck(Type* retType = nullptr) { return false; };
+    void typeCheck() { };
     void genCode();
 };
+
+//建立这个class的作用是为了把stmt类型转化为node
+//因此能够打印成节点
 class StmtNode : public Node {
    private:
     int kind;
@@ -222,8 +230,10 @@ class StmtNode : public Node {
    public:
     StmtNode(int kind = -1) : kind(kind){};
     bool isIf() const { return kind == IF; };
-    virtual bool typeCheck(Type* retType = nullptr) = 0;
+    virtual void typeCheck() = 0;
 };
+
+//复合语句
 class CompoundStmt : public StmtNode {
    private:
     StmtNode* stmt;
@@ -231,7 +241,7 @@ class CompoundStmt : public StmtNode {
    public:
     CompoundStmt(StmtNode* stmt = nullptr) : stmt(stmt){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -242,7 +252,7 @@ class SeqNode : public StmtNode {
    public:
     SeqNode(StmtNode* stmt1, StmtNode* stmt2) : stmt1(stmt1), stmt2(stmt2){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -260,16 +270,16 @@ class DeclStmt : public StmtNode {
         }
     };
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     Id* getId() { return id; };
 };
 
-class BlankStmt : public StmtNode {
+class EmptyStmt : public StmtNode {
    public:
-    BlankStmt(){};
+    EmptyStmt(){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -287,7 +297,7 @@ class IfStmt : public StmtNode {
         }
     };
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -306,7 +316,7 @@ class IfElseStmt : public StmtNode {
         }
     };
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -314,8 +324,8 @@ class WhileStmt : public StmtNode {
    private:
     ExprNode* cond;
     StmtNode* stmt;
-    BasicBlock* cond_bb;
-    BasicBlock* end_bb;
+    BasicBlock* cond_bb;//每次循环都要验证，因此新做一个bb
+    BasicBlock* end_bb;//为break语句设置
    public:
     WhileStmt(ExprNode* cond, StmtNode* stmt=nullptr) : cond(cond), stmt(stmt) {
         if (cond->getType()->isInt() && cond->getType()->getSize() == 32) {
@@ -325,7 +335,7 @@ class WhileStmt : public StmtNode {
     };
     void setStmt(StmtNode* stmt){this->stmt = stmt;};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     BasicBlock* get_cond_bb(){return this->cond_bb;};
     BasicBlock* get_end_bb(){return this->end_bb;};
@@ -337,7 +347,7 @@ class BreakStmt : public StmtNode {
    public:
     BreakStmt(StmtNode* whileStmt){this->whileStmt=whileStmt;};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -347,7 +357,7 @@ class ContinueStmt : public StmtNode {
    public:
     ContinueStmt(StmtNode* whileStmt){this->whileStmt=whileStmt;};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -358,7 +368,7 @@ class ReturnStmt : public StmtNode {
    public:
     ReturnStmt(ExprNode* retValue = nullptr) : retValue(retValue){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -370,7 +380,7 @@ class AssignStmt : public StmtNode {
    public:
     AssignStmt(ExprNode* lval, ExprNode* expr);
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
@@ -381,22 +391,22 @@ class ExprStmt : public StmtNode {
    public:
     ExprStmt(ExprNode* expr) : expr(expr){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
 };
 
+//函数定义
 class FunctionDef : public StmtNode {
    private:
-    SymbolEntry* se;
-    // 参数的定义 next连接
+    SymbolEntry* se; // 对应的符号表现
     DeclStmt* decl;
-    StmtNode* stmt;
+    StmtNode* stmt; // 动作
 
    public:
     FunctionDef(SymbolEntry* se, DeclStmt* decl, StmtNode* stmt)
         : se(se), decl(decl), stmt(stmt){};
     void output(int level);
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode();
     SymbolEntry* getSymPtr() { return se; };
 };
@@ -408,7 +418,7 @@ class Ast {
     Ast() { root = nullptr; }
     void setRoot(Node* n) { root = n; }
     void output();
-    bool typeCheck(Type* retType = nullptr);
+    void typeCheck();
     void genCode(Unit* unit);
 };
 #endif
