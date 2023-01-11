@@ -173,7 +173,7 @@ class CallInstruction : public Instruction {
    private:
     SymbolEntry* func;
     Operand* dst;
-
+ 
    public:
     CallInstruction(Operand* dst,
                     SymbolEntry* func,
@@ -182,6 +182,10 @@ class CallInstruction : public Instruction {
     ~CallInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
+    void insertLeft(AsmBuilder*);
+    void insertRight(AsmBuilder*);
+    void insertBinary(AsmBuilder*);
+    void insertDst(AsmBuilder*);
 };
 
 
@@ -204,7 +208,7 @@ class GepInstruction : public Instruction {
     bool first;
     bool last;
     Operand* init;
-
+ 
    public:
     GepInstruction(Operand* dst,
                    Operand* arr,
@@ -218,7 +222,21 @@ class GepInstruction : public Instruction {
     void setLast() { last = true; };
     Operand* getInit() const { return init; };
     void setInit(Operand* init) { this->init = init; };
-
+ 
+    void genInit(AsmBuilder*);
+    void insertImm(AsmBuilder*, MachineOperand* &);
+    void calcSize(AsmBuilder* builder, int& size);
+    void handleFirst(AsmBuilder* builder, MachineOperand*& base);
+    void insertMovLoad(AsmBuilder* builder, int v, MachineOperand*&);
+    void handleParamFirst(AsmBuilder* builder, MachineOperand*, MachineOperand*);
+ 
+    template<typename... Args>
+    void insertAdd(AsmBuilder* builder, Args... args){
+        auto cur_block = builder->getBlock();
+        auto cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, args...);
+ 
+        cur_block->InsertInst(cur_inst);
+    }
 };
 
 #endif
