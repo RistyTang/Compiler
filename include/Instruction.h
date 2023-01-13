@@ -48,7 +48,7 @@ class Instruction {
         CMP,
         ALLOCA,
         CALL,
-        ZEXT,
+        EXTEND,
         XOR,
         GEP
     };

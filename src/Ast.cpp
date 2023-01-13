@@ -478,210 +478,186 @@ void SeqNode::genCode() {
     stmt2->genCode();
 }
 
+void DeclStmt::genCodeGlobal(){
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+    if (!se->isGlobal()) {
+        return;
+    }
+    Operand* addr = nullptr;
+    //新建一个addr_se作为指针指向se
+    SymbolEntry* addr_se = nullptr;
+    addr_se = new IdentifierSymbolEntry(*se);
+    //设置为指针类型
+    addr_se->setType(new PointerType(se->getType()));
+    //操作数是指向se的指针
+    addr = new Operand(addr_se);
+    se->setAddr(addr);
+    //插入全局作用域id表
+    unit.insertGlobal(se);
+    mUnit.insertGlobal(se);
+}
+ 
+void DeclStmt::genCodeExprList(Operand* addr){
+    Operand* init = nullptr;
+    BasicBlock* bb = builder->getInsertBB();
+    ExprNode* temp = expr;
+    std::stack<ExprNode*> stk;
+    std::vector<int> idx;
+    idx.emplace_back(0);
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+ 
+    auto pop_stack = [&temp, &idx, &stk](){
+        while (true) {
+            if (temp->getNext()) {
+                temp = (ExprNode*)(temp->getNext());
+                idx[idx.size() - 1]++;
+                break;
+            } else {
+                temp = stk.top();
+                stk.pop();
+                idx.pop_back();
+                if (stk.empty())
+                    break;
+            }
+        }
+    };
+    auto init_value_list = [&temp, &idx, &stk](){
+        stk.push(temp);
+        idx.emplace_back(0);
+        temp = ((InitValueListExpr*)temp)->getExpr();
+    };
+ 
+    auto handle = [&temp, &idx, &stk, &se, &addr, &bb, &init](){
+        temp->genCode();
+        Type* type =
+            ((ArrayType*)(se->getType()))->getElementType();
+        Operand* tempSrc = addr;
+        Operand* tempDst;
+        Operand* index;
+        bool flag = true;
+        int i = 1;
+        while (true) {
+            tempDst = new Operand(new TemporarySymbolEntry(
+                new PointerType(type),
+                SymbolTable::getLabel()));
+            index = (new Constant(new ConstantSymbolEntry(
+                            TypeSystem::intType, idx[i++])))
+                        ->getOperand();
+            auto gep =
+                new GepInstruction(tempDst, tempSrc, index, bb);
+            gep->setInit(init);
+            if (flag) {
+                gep->setFirst();
+                flag = false;
+            }
+            if (type == TypeSystem::intType ||
+                type == TypeSystem::constIntType){
+                gep->setLast();
+                init = tempDst;
+                break;
+            }
+            type = ((ArrayType*)type)->getElementType();
+            tempSrc = tempDst;
+        }
+        new StoreInstruction(tempDst, temp->getOperand(), bb);
+    };
+ 
+    while (temp) {
+        while (temp && temp->isInitValueListExpr()) {
+            init_value_list();
+        }
+        if (!temp){
+            return;
+        }
+        handle();
+        pop_stack();
+        if (!stk.size())
+            return;
+    }
+}
+ 
+void DeclStmt::genCodeExpr(Operand* addr){
+    if (!expr){
+        return;
+    }
+ 
+    if (!expr->isInitValueListExpr()) {
+        BasicBlock* bb = builder->getInsertBB();
+        expr->genCode();
+        Operand* src = expr->getOperand();
+        std::vector<StoreInstruction*> v;
+        v.emplace_back(new StoreInstruction(addr, src, bb));
+        return;
+    }
+    genCodeExprList(addr);
+}
+ 
+void DeclStmt::genCodeLocal(){
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+    if (!se->isLocal()){
+        return;
+    }
+    //先获取所在函数的基本块链表
+    Function* func = builder->getInsertBB()->getParent();
+    BasicBlock* entry = func->getEntry();
+    Instruction* alloca = nullptr;
+    Operand* addr = nullptr;
+    SymbolEntry* addr_se = nullptr;
+    Type* type = nullptr;
+    //指针类型
+    type = new PointerType(se->getType());
+    addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
+    addr = new Operand(addr_se);
+    alloca = new AllocaInstruction(addr, se);
+    // 在函数栈中分配空间
+    entry->insertFront(alloca);  // 分配指令应该在entry块中
+    se->setAddr(addr);  //在符号项中设置addr操作数，以便在后续的代码生成中使用它。
+    //有表达式就继续生成
+ 
+    genCodeExpr(addr);
+}
+ 
+void DeclStmt::genCodeParam(){
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+    if (!se->isParam()){
+        return;
+    }
+    //先获取所在函数的基本块链表
+    Function* func = builder->getInsertBB()->getParent();
+    BasicBlock* entry = func->getEntry();
+    Instruction* alloca;
+    Operand* addr;
+    SymbolEntry* addr_se;
+    Type* type;
+    //指针类型
+    type = new PointerType(se->getType());
+    addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
+    addr = new Operand(addr_se);
+    alloca = new AllocaInstruction(addr, se);
+    // allocate space for local id in function stack.
+    entry->insertFront(alloca);  // allocate instructions should be inserted
+                                    // into the begin of the entry block.
+    Operand* temp = se->getAddr();
+    se->setAddr(addr);
+    genCodeExpr(addr);
+    //放入此基本块
+    BasicBlock* bb = builder->getInsertBB();
+    new StoreInstruction(addr, temp, bb);
+}
+ 
 void DeclStmt::genCode() {
     //获取
-    IdentifierSymbolEntry* se =
-        dynamic_cast<IdentifierSymbolEntry*>(id->getSymPtr());
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
     if (se->isGlobal()) {
-        Operand* addr;
-        //新建一个addr_se作为指针指向se
-        SymbolEntry* addr_se;
-        addr_se = new IdentifierSymbolEntry(*se);
-        //设置为指针类型
-        addr_se->setType(new PointerType(se->getType()));
-        //操作数是指向se的指针
-        addr = new Operand(addr_se);
-        se->setAddr(addr);
-        //插入全局作用域id表
-        unit.insertGlobal(se);
-        mUnit.insertGlobal(se);
+        genCodeGlobal();
     }
     else if (se->isLocal())
     {
-        //先获取所在函数的基本块链表
-        Function* func = builder->getInsertBB()->getParent();
-        BasicBlock* entry = func->getEntry();
-        Instruction* alloca;
-        Operand* addr;
-        SymbolEntry* addr_se;
-        Type* type;
-        //指针类型
-        type = new PointerType(se->getType());
-        addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
-        addr = new Operand(addr_se);
-        alloca = new AllocaInstruction(addr, se);
-        // 在函数栈中分配空间
-        entry->insertFront(alloca);  // 分配指令应该在entry块中
-        se->setAddr(addr);  //在符号项中设置addr操作数，以便在后续的代码生成中使用它。
-        //有表达式就继续生成
-        if (expr)
-        {
-            if (!expr->isInitValueListExpr()) {
-                BasicBlock* bb = builder->getInsertBB();
-                expr->genCode();
-                Operand* src = expr->getOperand();
-                new StoreInstruction(addr, src, bb);
-            } else {
-                Operand* init = nullptr;
-                BasicBlock* bb = builder->getInsertBB();
-                ExprNode* temp = expr;
-                std::stack<ExprNode*> stk;
-                std::vector<int> idx;
-                idx.push_back(0);
-                while (temp) {
-                    if (temp->isInitValueListExpr()) {
-                        stk.push(temp);
-                        idx.push_back(0);
-                        temp = ((InitValueListExpr*)temp)->getExpr();
-                        continue;
-                    } else {
-                        temp->genCode();
-                        Type* type =
-                            ((ArrayType*)(se->getType()))->getElementType();
-                        Operand* tempSrc = addr;
-                        Operand* tempDst;
-                        Operand* index;
-                        bool flag = true;
-                        int i = 1;
-                        while (true) {
-                            tempDst = new Operand(new TemporarySymbolEntry(
-                                new PointerType(type),
-                                SymbolTable::getLabel()));
-                            index = (new Constant(new ConstantSymbolEntry(
-                                         TypeSystem::intType, idx[i++])))
-                                        ->getOperand();
-                            auto gep =
-                                new GepInstruction(tempDst, tempSrc, index, bb);
-                            gep->setInit(init);
-                            if (flag) {
-                                gep->setFirst();
-                                flag = false;
-                            }
-                            if (type == TypeSystem::intType ||
-                                type == TypeSystem::constIntType){
-                                gep->setLast();
-                                init = tempDst;
-                                break;
-                            }
-                            type = ((ArrayType*)type)->getElementType();
-                            tempSrc = tempDst;
-                        }
-                        new StoreInstruction(tempDst, temp->getOperand(), bb);
-                    }
-                    while (true) {
-                        if (temp->getNext()) {
-                            temp = (ExprNode*)(temp->getNext());
-                            idx[idx.size() - 1]++;
-                            break;
-                        } else {
-                            temp = stk.top();
-                            stk.pop();
-                            idx.pop_back();
-                            if (stk.empty())
-                                break;
-                        }
-                    }
-                    if (stk.empty())
-                        break;
-                }
-            }
-        }
+        genCodeLocal();
     }
     else if(se->isParam())
     {
-        //先获取所在函数的基本块链表
-        Function* func = builder->getInsertBB()->getParent();
-        BasicBlock* entry = func->getEntry();
-        Instruction* alloca;
-        Operand* addr;
-        SymbolEntry* addr_se;
-        Type* type;
-        //指针类型
-        type = new PointerType(se->getType());
-        addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
-        addr = new Operand(addr_se);
-        alloca = new AllocaInstruction(addr, se);
-        // allocate space for local id in function stack.
-        entry->insertFront(alloca);  // allocate instructions should be inserted
-                                     // into the begin of the entry block.
-        Operand* temp = se->getAddr();
-        se->setAddr(addr);
-        if (expr)
-        {
-            if (!expr->isInitValueListExpr()) {
-                BasicBlock* bb = builder->getInsertBB();
-                expr->genCode();
-                Operand* src = expr->getOperand();
-                //把它存进参数的基本块
-                new StoreInstruction(addr, src, bb);
-            } else {
-                Operand* init = nullptr;
-                BasicBlock* bb = builder->getInsertBB();
-                ExprNode* temp = expr;
-                std::stack<ExprNode*> stk;
-                std::vector<int> idx;
-                idx.push_back(0);
-                while (temp) {
-                    if (temp->isInitValueListExpr()) {
-                        stk.push(temp);
-                        idx.push_back(0);
-                        temp = ((InitValueListExpr*)temp)->getExpr();
-                        continue;
-                    } else {
-                        temp->genCode();
-                        Type* type =
-                            ((ArrayType*)(se->getType()))->getElementType();
-                        Operand* tempSrc = addr;
-                        Operand* tempDst;
-                        Operand* index;
-                        bool flag = true;
-                        int i = 1;
-                        while (true) {
-                            tempDst = new Operand(new TemporarySymbolEntry(
-                                new PointerType(type),
-                                SymbolTable::getLabel()));
-                            index = (new Constant(new ConstantSymbolEntry(
-                                         TypeSystem::intType, idx[i++])))
-                                        ->getOperand();
-                            auto gep =
-                                new GepInstruction(tempDst, tempSrc, index, bb);
-                            gep->setInit(init);
-                            if (flag) {
-                                gep->setFirst();
-                                flag = false;
-                            }
-                            if (type == TypeSystem::intType ||
-                                type == TypeSystem::constIntType){
-                                gep->setLast();
-                                init = tempDst;
-                                break;
-                            }
-                            type = ((ArrayType*)type)->getElementType();
-                            tempSrc = tempDst;
-                        }
-                        new StoreInstruction(tempDst, temp->getOperand(), bb);
-                    }
-                    while (true) {
-                        if (temp->getNext()) {
-                            temp = (ExprNode*)(temp->getNext());
-                            idx[idx.size() - 1]++;
-                            break;
-                        } else {
-                            temp = stk.top();
-                            stk.pop();
-                            idx.pop_back();
-                            if (stk.empty())
-                                break;
-                        }
-                    }
-                    if (stk.empty())
-                        break;
-                }
-            }
-        }
-        //放入此基本块
-        BasicBlock* bb = builder->getInsertBB();
-        new StoreInstruction(addr, temp, bb);
+        genCodeParam();
     }
     if (this->getNext()) {
         this->getNext()->genCode();

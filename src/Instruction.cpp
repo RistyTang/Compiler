@@ -619,34 +619,48 @@ void CondBrInstruction::genMachineCode(AsmBuilder* builder) {
     Instruction::insertBranch(builder, false_branch, false);
 }
  
-void RetInstruction::insertOperand(AsmBuilder* builder){
+void RetInstruction::insertOperand(AsmBuilder* builder)
+{
+    //没有返回值就直接返回
     if (operands.empty()){
         return;
     }
+    //有返回值放入r0寄存器
     auto dst = new MachineOperand(MachineOperand::REG, 0);
     auto src = genMachineOperand(operands[0]);
     auto cur_block = builder->getBlock();
     auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, src);
     cur_block->InsertInst(cur_inst);
 }
-void RetInstruction::insertFunction(AsmBuilder* builder){
+void RetInstruction::insertFunction(AsmBuilder* builder)
+{
     auto cur_block = builder->getBlock();
     auto cur_func = builder->getFunction();
     auto sp = MachineOperand::newReg(MachineOperand::RegType::SP);
     auto size = new MachineOperand(MachineOperand::IMM, cur_func->AllocSpace(0));
+    //生成ADD指令恢复栈帧
     auto cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD,
                                            sp, sp, size);
     cur_block->InsertInst(cur_inst);
+    //有 Callee saved 寄存器，我们还需要生成 POP 指令恢复这些寄存器
 }
  
-void RetInstruction::insertBx(AsmBuilder* builder){
+void RetInstruction::insertBx(AsmBuilder* builder)
+{
     auto cur_block = builder->getBlock();
+    //生成 POP 指令恢复 FP 寄存器
+    //auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+    //auto pop_inst = new StackMInstrcuton(cur_block,StackMInstrcuton::POP,{},fp);
+    //cur_block->InsertInst(pop_inst);
+
     auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
+    //再生成跳转指令来返回到 Caller
     auto cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::BX, lr);
     cur_block->InsertInst(cur_inst);
 }
 
-void RetInstruction::genMachineCode(AsmBuilder* builder) {
+void RetInstruction::genMachineCode(AsmBuilder* builder) 
+{
     // TODO
     /* HINT:
      * 1. Generate mov instruction to save return value in r0
@@ -771,7 +785,7 @@ CallInstruction::~CallInstruction() {
 ExtensionInstruction::ExtensionInstruction(Operand* dst,
                                  Operand* src,
                                  BasicBlock* insert_bb)
-    : Instruction(ZEXT, insert_bb) {
+    : Instruction(EXTEND, insert_bb) {
     operands.push_back(dst);
     operands.push_back(src);
     dst->setDef(this);
@@ -785,7 +799,8 @@ void ExtensionInstruction::output() const {
             src->getType()->toStr().c_str(), src->toStr().c_str());
 }
 
-ExtensionInstruction::~ExtensionInstruction() {
+ExtensionInstruction::~ExtensionInstruction() 
+{
     operands[0]->setDef(nullptr);
     if (operands[0]->usersNum() == 0)
         delete operands[0];
@@ -838,12 +853,13 @@ GepInstruction::~GepInstruction() {
     operands[2]->removeUse(this);
 }
 
-void ExtensionInstruction::genMachineCode(AsmBuilder* builder) {
+void ExtensionInstruction::genMachineCode(AsmBuilder* builder) 
+{
     auto cur_block = builder->getBlock();
     auto dst = genMachineOperand(operands[0]);
     auto src = genMachineOperand(operands[1]);
-    auto cur_inst =
-        new MovMInstruction(cur_block, MovMInstruction::MOV, dst, src);
+    //mov实现扩展
+    auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, src);
     cur_block->InsertInst(cur_inst);
 }
 

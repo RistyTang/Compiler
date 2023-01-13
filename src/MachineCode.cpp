@@ -92,7 +92,7 @@ std::string MachineOperand::getOperandString()
             {    
                 temp=this->label.c_str();
             }
-            else if (this->label.substr(0, 1) == "@")
+            else if (this->label.substr(0, 1) == "@")//@putint || @putch
             {    
                 temp=this->label.c_str() + 1;
             }
@@ -258,7 +258,7 @@ std::string LoadMInstruction::getLoadCodeString()
     }
     else//寄存器
     {
-        if (this->use_list[0]->isReg() || this->use_list[0]->isVReg())
+        if (this->use_list[0]->isReg() || this->use_list[0]->isVReg())//[]取内容
         {
             temp+="[";
         }
@@ -284,7 +284,7 @@ void LoadMInstruction::output()
 
 StoreMInstruction::StoreMInstruction(MachineBlock* p, MachineOperand* src1, MachineOperand* src2, MachineOperand* src3, int cond) 
 {
-    //TODO store没有deflist
+    //TODO 
     this->parent = p;
     this->type = MachineInstruction::STORE;
     this->op = -1;

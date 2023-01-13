@@ -254,6 +254,11 @@ class DeclStmt : public StmtNode {
     void typeCheck();
     void genCode();
     Id* getId() { return id; };
+    void genCodeGlobal();
+    void genCodeLocal();
+    void genCodeParam();
+    void genCodeExpr(Operand*);
+    void genCodeExprList(Operand*);
 };
 
 class EmptyStmt : public StmtNode {

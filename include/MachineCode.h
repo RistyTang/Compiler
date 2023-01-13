@@ -57,7 +57,7 @@ class MachineOperand {
     void setVal(int val) { this->val = val; };
     std::string getRegString();//获取寄存器编号
     std::string getOperandString();
-    enum RegType { FP=11,SP=13,LR=14,PC=15 };
+    enum RegType { FP=11,SP=13,LR=14,PC=15 };//寄存器类别
     static MachineOperand* newReg(RegType);
     static MachineOperand* newVReg();
     static MachineOperand* newImm(int val){
@@ -75,6 +75,7 @@ protected:
     int op;                               // Instruction opcode指令码
     // Instruction operand list, sorted by appearance order in assembly
     // instruction
+    // add v1,v2,v3
     std::vector<MachineOperand*> def_list;//定义
     std::vector<MachineOperand*> use_list;//使用
     void addDef(MachineOperand* ope) { def_list.push_back(ope); };
@@ -116,6 +117,7 @@ class BinaryMInstruction : public MachineInstruction
     std::string getCodeString();
 };
 
+//ldr r3, [fp, #40]
 class LoadMInstruction : public MachineInstruction 
 {
    public:
@@ -128,6 +130,7 @@ class LoadMInstruction : public MachineInstruction
     std::string getLoadCodeString();
 };
 
+//str r0, [fp, #-40]
 class StoreMInstruction : public MachineInstruction 
 {
    public:
@@ -140,9 +143,10 @@ class StoreMInstruction : public MachineInstruction
     std::string getStoreCodeString();
 };
 
+//mov fp, sp
 class MovMInstruction : public MachineInstruction {
    public:
-    enum opType { MOV, MVN };
+    enum opType { MOV, MVN };//mvn?
     MovMInstruction(MachineBlock* p,
                     int op,
                     MachineOperand* dst,
@@ -175,6 +179,7 @@ class CmpMInstruction : public MachineInstruction {
     std::string getCmpCodeString();
 };
 
+//pop {r4, r5, r6, r7, r8, fp, lr}
 class StackMInstrcuton : public MachineInstruction {
    public:
     enum opType { PUSH, POP };
