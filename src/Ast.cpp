@@ -284,22 +284,22 @@ void Id::genCode() {
         new LoadInstruction(dst, addr, bb);
         return;
     }
-    if (!type->isArray()) {
+    if (!type->isArray()) 
+    {
         return;
     }
-    //如果不是数组
+    //没有记录索引或者是数组首元素
     if (!arrIdx) 
     {
-        if (((ArrayType*)(this->type))->getLength() == -1) 
+        if (((ArrayType*)(this->type))->getLength() == -1) //是参数
         {
             Operand* dst1 = new Operand(new TemporarySymbolEntry(
-                new PointerType(
-                    ((ArrayType*)(this->type))->getElementType()),
+                new PointerType( ((ArrayType*)(this->type))->getElementType()),
                 SymbolTable::getLabel()));
             new LoadInstruction(dst1, addr, bb);
             dst = dst1;
         } 
-        else 
+        else //是首元素
         {
             Operand* idx = new Operand(
                 new ConstantSymbolEntry(TypeSystem::intType, 0));
@@ -328,7 +328,7 @@ void Id::genCode() {
             flag = true;
             firstFlag = false;
         }
-        if (!idx) //不是数组元素的话直接gep
+        if (!idx) //没有记录位置
         {
             Operand* dst1 = new Operand(new TemporarySymbolEntry(
                 new PointerType(type), SymbolTable::getLabel()));
@@ -341,15 +341,14 @@ void Id::genCode() {
         }
         //如果是数组元素
         idx->genCode();
-        auto gep = new GepInstruction(tempDst, tempSrc,
-                                      idx->getOperand(), bb, flag);
-        if (!flag && firstFlag) {
+        auto gep = new GepInstruction(tempDst, tempSrc, idx->getOperand(), bb, flag);
+        if (!flag && firstFlag) 
+        {
             gep->setFirst();
             firstFlag = false;
         }
         flag = false;
-        if (type == TypeSystem::intType ||
-            type == TypeSystem::constIntType)
+        if (type == TypeSystem::intType || type == TypeSystem::constIntType)
             break;
         type = ((ArrayType*)type)->getElementType();
         type1 = ((ArrayType*)type1)->getElementType();
@@ -359,7 +358,7 @@ void Id::genCode() {
         idx = (ExprNode*)(idx->getNext());
     }
     dst = tempDst;
-    // 如果是右值还需要一条load
+    // 如果是右值还需要一条load以加载结果
     if (!left && !pointer) {
         Operand* dst1 = new Operand(new TemporarySymbolEntry(
             TypeSystem::intType, SymbolTable::getLabel()));

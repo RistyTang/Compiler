@@ -30,7 +30,6 @@ class Instruction {
     MachineOperand* genMachineImm(int val);
     MachineOperand* genMachineLabel(int block_no);
     virtual void genMachineCode(AsmBuilder*) = 0;
-    void insertBranch(AsmBuilder* builder, BasicBlock* branch, bool set_cond);
    protected:
     unsigned instType;
     unsigned opcode;

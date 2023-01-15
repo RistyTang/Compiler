@@ -573,57 +573,75 @@ void BinaryInstruction::genMachineCode(AsmBuilder* builder) {
     cur_block->InsertInst(cur_inst);
 }
  
-void insertCmpMov(AsmBuilder* builder, MachineOperand* dst, MachineOperand* op, unsigned opcode){
+void insertCmpMov(AsmBuilder* builder, MachineOperand* dst, MachineOperand* op, unsigned opcode)
+{
     auto cur_block = builder->getBlock();
     auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, op, opcode);
     cur_block->InsertInst(cur_inst);
 }
 
-void CmpInstruction::genMachineCode(AsmBuilder* builder) {
+void CmpInstruction::genMachineCode(AsmBuilder* builder) 
+{
+    //TODO
+    //进行立即数合法化
     auto cur_block = builder->getBlock();
     auto src1 = genMachineOperand(operands[1]);
     auto src2 = genMachineOperand(operands[2]);
-    if (src1->isImm()) {
+    if (src1->isImm()) 
+    {
         src1 = replaceCmpImm(builder, src1);
     }
-    if (src2->isImm() &&
-        ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() > 255) {
+    if (src2->isImm() && ((ConstantSymbolEntry*)(operands[2]->getEntry()))->getValue() > 255) 
+    {
         src2 = replaceCmpImm(builder, src2);
     }
+    //生成汇编代码
     auto cur_inst = new CmpMInstruction(cur_block, src1, src2, opcode);
         cur_block->InsertInst(cur_inst);
+    //如果是等于或者不等于的比较就不用再继续了
     if (!isLessOrGreater(opcode)){
         return;
     }
-        auto dst = genMachineOperand(operands[0]);
+    //其余则需要mov结果
+    auto dst = genMachineOperand(operands[0]);
     auto trueOperand = MachineOperand::newImm(1);
     auto falseOperand = MachineOperand::newImm(0);
+    //记录结果true or false
     insertCmpMov(builder, dst, trueOperand, opcode);
     insertCmpMov(builder, dst, falseOperand, 7 - opcode);
 }
 
-void Instruction::insertBranch(AsmBuilder* builder, BasicBlock* branch, bool set_cond){
+void UncondBrInstruction::genMachineCode(AsmBuilder* builder) 
+{
+    //TODO
     auto cur_block = builder->getBlock();
     std::stringstream s;
     s << ".L" << branch->getNo();
     MachineOperand* dst = new MachineOperand(s.str());
     BranchMInstruction* cur_inst;
-    if (set_cond){
-        cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::B, dst, cur_block->getCmpCond());
-    } else {
-        cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::B, dst);
-    }
+    cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::B, dst);
     cur_block->InsertInst(cur_inst);
 }
-
  
-void UncondBrInstruction::genMachineCode(AsmBuilder* builder) {
-    Instruction::insertBranch(builder, branch, false);
-}
- 
-void CondBrInstruction::genMachineCode(AsmBuilder* builder) {
-    Instruction::insertBranch(builder, true_branch, true);
-    Instruction::insertBranch(builder, false_branch, false);
+void CondBrInstruction::genMachineCode(AsmBuilder* builder) 
+{
+    //TODO
+    auto cur_block = builder->getBlock();
+    //true
+    std::stringstream s1;
+    s1 << ".L" << true_branch->getNo();
+    MachineOperand* dst1 = new MachineOperand(s1.str());
+    BranchMInstruction* cur_inst1;
+    cur_inst1 = new BranchMInstruction(cur_block, BranchMInstruction::B, dst1, cur_block->getCmpCond());
+    cur_block->InsertInst(cur_inst1);
+    
+    //false
+    std::stringstream s2;
+    s2 << ".L" << false_branch->getNo();
+    auto dst2 = new MachineOperand(s2.str());
+    BranchMInstruction* cur_inst2;
+    cur_inst2 = new BranchMInstruction(cur_block, BranchMInstruction::B, dst2);
+    cur_block->InsertInst(cur_inst2);
 }
  
 void RetInstruction::insertOperand(AsmBuilder* builder)
@@ -996,7 +1014,7 @@ void GepInstruction::handleParamFirst(AsmBuilder* builder, MachineOperand* base,
         return;
     }
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
-    //下一个元素位置
+    //下一个数组位置
     insertAdd(builder, dst, fp, addr);
 }
 

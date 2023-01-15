@@ -146,7 +146,7 @@ class Constant : public ExprNode {
 
 class Id : public ExprNode {
    private:
-    ExprNode* arrIdx;//记录在数组中的位置
+    ExprNode* arrIdx;//记录在数组大小
     bool left = false;
 
    public:
