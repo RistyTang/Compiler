@@ -279,23 +279,28 @@ void Id::genCode() {
     BasicBlock* bb = builder->getInsertBB();
     Operand* addr =
         dynamic_cast<IdentifierSymbolEntry*>(symbolEntry)->getAddr();
-    if (type->isInt()) {
+    if (type->isInt()) //不是数组类型直接load值
+    {
         new LoadInstruction(dst, addr, bb);
         return;
     }
     if (!type->isArray()) {
         return;
     }
-    if (!arrIdx) {
-        if (((ArrayType*)(this->type))->getLength() == -1) {
+    //如果不是数组
+    if (!arrIdx) 
+    {
+        if (((ArrayType*)(this->type))->getLength() == -1) 
+        {
             Operand* dst1 = new Operand(new TemporarySymbolEntry(
                 new PointerType(
                     ((ArrayType*)(this->type))->getElementType()),
                 SymbolTable::getLabel()));
             new LoadInstruction(dst1, addr, bb);
             dst = dst1;
-
-        } else {
+        } 
+        else 
+        {
             Operand* idx = new Operand(
                 new ConstantSymbolEntry(TypeSystem::intType, 0));
             auto gep = new GepInstruction(dst, addr, idx, bb);
@@ -303,6 +308,7 @@ void Id::genCode() {
         }
         return;
     }
+    //如果是数组
     Type* type = ((ArrayType*)(this->type))->getElementType();
     Type* type1 = this->type;
     Operand* tempSrc = addr;
@@ -311,8 +317,10 @@ void Id::genCode() {
     bool flag = false;
     bool pointer = false;
     bool firstFlag = true;
-    while (true) {
-        if (((ArrayType*)type1)->getLength() == -1) {
+    while (true) 
+    {
+        if (((ArrayType*)type1)->getLength() == -1) //如果-1说明是参数里的数组，没有规定数组值
+        {
             Operand* dst1 = new Operand(new TemporarySymbolEntry(
                 new PointerType(type), SymbolTable::getLabel()));
             tempSrc = dst1;
@@ -320,7 +328,8 @@ void Id::genCode() {
             flag = true;
             firstFlag = false;
         }
-        if (!idx) {
+        if (!idx) //不是数组元素的话直接gep
+        {
             Operand* dst1 = new Operand(new TemporarySymbolEntry(
                 new PointerType(type), SymbolTable::getLabel()));
             Operand* idx = new Operand(
@@ -330,7 +339,7 @@ void Id::genCode() {
             pointer = true;
             break;
         }
-
+        //如果是数组元素
         idx->genCode();
         auto gep = new GepInstruction(tempDst, tempSrc,
                                       idx->getOperand(), bb, flag);
@@ -477,42 +486,80 @@ void SeqNode::genCode() {
     stmt1->genCode();
     stmt2->genCode();
 }
-
-void DeclStmt::genCodeGlobal(){
-    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
-    if (!se->isGlobal()) {
-        return;
-    }
-    Operand* addr = nullptr;
-    //新建一个addr_se作为指针指向se
-    SymbolEntry* addr_se = nullptr;
-    addr_se = new IdentifierSymbolEntry(*se);
-    //设置为指针类型
-    addr_se->setType(new PointerType(se->getType()));
-    //操作数是指向se的指针
-    addr = new Operand(addr_se);
-    se->setAddr(addr);
-    //插入全局作用域id表
-    unit.insertGlobal(se);
-    mUnit.insertGlobal(se);
-}
  
-void DeclStmt::genCodeExprList(Operand* addr){
+//数组元素的处理
+void DeclStmt::genCodeExprList(Operand* addr)
+{
     Operand* init = nullptr;
     BasicBlock* bb = builder->getInsertBB();
     ExprNode* temp = expr;
-    std::stack<ExprNode*> stk;
-    std::vector<int> idx;
+    std::stack<ExprNode*> stk;//
+    std::vector<int> idx;//记录各个维度的索引
     idx.emplace_back(0);
     IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
  
-    auto pop_stack = [&temp, &idx, &stk](){
-        while (true) {
-            if (temp->getNext()) {
+    
+    auto init_value_list = [&temp, &idx, &stk]()
+    {
+        stk.push(temp);
+        idx.emplace_back(0);
+        temp = ((InitValueListExpr*)temp)->getExpr();
+    };
+ 
+    auto handle = [&temp, &idx, &stk, &se, &addr, &bb, &init]()
+    {
+        //生成结果
+        temp->genCode();
+        Type* type = ((ArrayType*)(se->getType()))->getElementType();
+        Operand* tempSrc = addr;
+        Operand* tempDst;
+        Operand* index;
+        bool flag = true;
+        int i = 1;
+        //为每个元素生成gep指令
+        while (true) 
+        {
+            tempDst = new Operand(new TemporarySymbolEntry(new PointerType(type), SymbolTable::getLabel()));
+            index = (new Constant(new ConstantSymbolEntry(TypeSystem::intType, idx[i++])))->getOperand();
+            //生成gep指令以获取子元素地址
+            auto gep = new GepInstruction(tempDst, tempSrc, index, bb);
+            gep->setInit(init);
+            //是这一维度的第一个元素
+            if (flag) 
+            {
+                gep->setFirst();
+                flag = false;
+            }
+            //是最后一个元素
+            if (type == TypeSystem::intType || type == TypeSystem::constIntType)
+            {
+                //之前生成的gep指令就是最后一维度数组的gep
+                gep->setLast();
+                //init指向这一指针类型
+                init = tempDst;
+                break;
+            }
+            //其余情况下
+            type = ((ArrayType*)type)->getElementType();
+            tempSrc = tempDst;
+        }
+        //生成一条store指令，将值存入dst
+        new StoreInstruction(tempDst, temp->getOperand(), bb);
+    };
+ 
+    auto pop_stack = [&temp, &idx, &stk]()
+    {
+        while (true) 
+        {
+            //下一个最低维度
+            if (temp->getNext()) 
+            {
                 temp = (ExprNode*)(temp->getNext());
                 idx[idx.size() - 1]++;
                 break;
-            } else {
+            } 
+            else //全部出栈
+            {
                 temp = stk.top();
                 stk.pop();
                 idx.pop_back();
@@ -521,78 +568,72 @@ void DeclStmt::genCodeExprList(Operand* addr){
             }
         }
     };
-    auto init_value_list = [&temp, &idx, &stk](){
-        stk.push(temp);
-        idx.emplace_back(0);
-        temp = ((InitValueListExpr*)temp)->getExpr();
-    };
- 
-    auto handle = [&temp, &idx, &stk, &se, &addr, &bb, &init](){
-        temp->genCode();
-        Type* type =
-            ((ArrayType*)(se->getType()))->getElementType();
-        Operand* tempSrc = addr;
-        Operand* tempDst;
-        Operand* index;
-        bool flag = true;
-        int i = 1;
-        while (true) {
-            tempDst = new Operand(new TemporarySymbolEntry(
-                new PointerType(type),
-                SymbolTable::getLabel()));
-            index = (new Constant(new ConstantSymbolEntry(
-                            TypeSystem::intType, idx[i++])))
-                        ->getOperand();
-            auto gep =
-                new GepInstruction(tempDst, tempSrc, index, bb);
-            gep->setInit(init);
-            if (flag) {
-                gep->setFirst();
-                flag = false;
-            }
-            if (type == TypeSystem::intType ||
-                type == TypeSystem::constIntType){
-                gep->setLast();
-                init = tempDst;
-                break;
-            }
-            type = ((ArrayType*)type)->getElementType();
-            tempSrc = tempDst;
-        }
-        new StoreInstruction(tempDst, temp->getOperand(), bb);
-    };
- 
-    while (temp) {
-        while (temp && temp->isInitValueListExpr()) {
+    while (temp) 
+    {
+        //确定到单维数组上
+        while (temp && temp->isInitValueListExpr()) 
+        {
             init_value_list();
         }
-        if (!temp){
+        if (!temp)
+        {
             return;
         }
+        //生成gep指令获取各个地址
         handle();
+        //全部出栈
         pop_stack();
+        //stk清空时退出
         if (!stk.size())
             return;
     }
 }
  
-void DeclStmt::genCodeExpr(Operand* addr){
+void DeclStmt::genCodeExpr(Operand* addr)
+{
+    //可能不存在初始值
     if (!expr){
         return;
     }
- 
-    if (!expr->isInitValueListExpr()) {
+    if (!expr->isInitValueListExpr())//非数组情况
+    {
+        //直接生成结果然后存入对应地址中。
         BasicBlock* bb = builder->getInsertBB();
         expr->genCode();
         Operand* src = expr->getOperand();
-        std::vector<StoreInstruction*> v;
-        v.emplace_back(new StoreInstruction(addr, src, bb));
+        new StoreInstruction(addr, src, bb);
         return;
     }
+    //如果是数组的话需要另外处理
     genCodeExprList(addr);
 }
- 
-void DeclStmt::genCodeLocal(){
+
+//全局常变量的处理
+void DeclStmt::genCodeGlobal()
+{
+    IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+    if (!se->isGlobal()) 
+    {
+        return;
+    }
+    Operand* addr = nullptr;
+    //新建一个addr_se作为指针指向se
+    SymbolEntry* addr_se = new IdentifierSymbolEntry(*se);
+    Type* type ;
+    //指针类型
+    type = new PointerType(se->getType());
+    //设置为指针类型
+    addr_se->setType(type);
+    //操作数是指向se的指针
+    addr = new Operand(addr_se);
+    se->setAddr(addr);
+    //插入全局作用域id表
+    unit.insertGlobal(se);
+    mUnit.insertGlobal(se);
+}
+
+void DeclStmt::genCodeLocal()
+{
     IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
     if (!se->isLocal()){
         return;
@@ -600,26 +641,27 @@ void DeclStmt::genCodeLocal(){
     //先获取所在函数的基本块链表
     Function* func = builder->getInsertBB()->getParent();
     BasicBlock* entry = func->getEntry();
-    Instruction* alloca = nullptr;
-    Operand* addr = nullptr;
-    SymbolEntry* addr_se = nullptr;
-    Type* type = nullptr;
+    Instruction* alloca ;
+    Operand* addr ;
+    SymbolEntry* addr_se ;
+    Type* type ;
     //指针类型
     type = new PointerType(se->getType());
     addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
     addr = new Operand(addr_se);
-    alloca = new AllocaInstruction(addr, se);
     // 在函数栈中分配空间
+    alloca = new AllocaInstruction(addr, se);
     entry->insertFront(alloca);  // 分配指令应该在entry块中
     se->setAddr(addr);  //在符号项中设置addr操作数，以便在后续的代码生成中使用它。
-    //有表达式就继续生成
- 
+    //对应的值的生成
     genCodeExpr(addr);
 }
  
-void DeclStmt::genCodeParam(){
+void DeclStmt::genCodeParam()
+{
     IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
-    if (!se->isParam()){
+    if (!se->isParam())
+    {
         return;
     }
     //先获取所在函数的基本块链表
@@ -633,33 +675,39 @@ void DeclStmt::genCodeParam(){
     type = new PointerType(se->getType());
     addr_se = new TemporarySymbolEntry(type, SymbolTable::getLabel());
     addr = new Operand(addr_se);
+    //在函数栈中为该变量id分配空间
     alloca = new AllocaInstruction(addr, se);
-    // allocate space for local id in function stack.
     entry->insertFront(alloca);  // allocate instructions should be inserted
                                     // into the begin of the entry block.
     Operand* temp = se->getAddr();
     se->setAddr(addr);
+    //对应的值的生成
     genCodeExpr(addr);
     //放入此基本块
     BasicBlock* bb = builder->getInsertBB();
+    //temp结果放入addr
     new StoreInstruction(addr, temp, bb);
 }
  
 void DeclStmt::genCode() {
-    //获取
+    //获取符号表项
     IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
+    //全局常变量
     if (se->isGlobal()) {
         genCodeGlobal();
     }
+    //局部变量
     else if (se->isLocal())
     {
         genCodeLocal();
     }
+    //函数参数
     else if(se->isParam())
     {
         genCodeParam();
     }
-    if (this->getNext()) {
+    if (this->getNext()) 
+    {
         this->getNext()->genCode();
     }
 }
@@ -1269,7 +1317,8 @@ void InitValueListExpr::output(int level) {
     }
 }
 
-void InitValueListExpr::addExpr(ExprNode* expr) {
+void InitValueListExpr::addExpr(ExprNode* expr) 
+{
     if (this->expr == nullptr) {
         assert(childCnt == 0);
         childCnt++;
@@ -1280,23 +1329,30 @@ void InitValueListExpr::addExpr(ExprNode* expr) {
     }
 }
 
-bool InitValueListExpr::isFull() {
+bool InitValueListExpr::isFull() //是否全部填充完毕
+{
     ArrayType* type = (ArrayType*)(this->symbolEntry->getType());
     return childCnt == type->getLength();
 }
 
-void InitValueListExpr::fill() {
+//将数组中未定义部分全部0填充
+void InitValueListExpr::fill() 
+{
     Type* type = ((ArrayType*)(this->getType()))->getElementType();
-    if (type->isInt()) {
-        while (!isFull())
+    //是最后一维数组
+    if (type->isInt()) 
+    {
+        while (!isFull())//未定义部分0填充
             this->addExpr(new Constant(new ConstantSymbolEntry(type, 0)));
         return;
     }
-    if (type->isArray()) {
-        while (!isFull())
+    if (type->isArray()) 
+    {
+        while (!isFull())//未定义部分type填充
             this->addExpr(new InitValueListExpr(new ConstantSymbolEntry(type)));
         ExprNode* temp = expr;
-        while (temp) {
+        while (temp) 
+        {
             ((InitValueListExpr*)temp)->fill();
             temp = (ExprNode*)(temp->getNext());
         }

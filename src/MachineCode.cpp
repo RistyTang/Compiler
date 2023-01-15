@@ -375,13 +375,13 @@ std::string BranchMInstruction::getBranchCodeString()
     std::string temp;
     switch (op) 
     {
-        case B:
+        case B://b label
             temp="\tb"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
-        case BX:
+        case BX://bx reg
             temp="\tbx"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
-        case BL:
+        case BL://bl label
             temp="\tbl"+getCondString()+" "+this->def_list[0]->getOperandString()+"\n";
             break;
     }
@@ -476,7 +476,7 @@ MachineFunction::MachineFunction(MachineUnit* p, SymbolEntry* sym_ptr)
     this->paramsNum = ((FunctionType*)(sym_ptr->getType()))->getParamsSe().size();
 };
 
-//将保存的寄存器都出栈
+//bx带状态跳转，将保存的寄存器都出栈，对应return语句
 void MachineBlock::outputBlockBx()
 {
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
@@ -511,7 +511,7 @@ void MachineBlock::outputBlockAdd(InsIterType it)
 {
     auto dst = (*it)->getDef()[0];
     auto src1 = (*it)->getUse()[0];
-    //抬高栈：dst和src1都是sp寄存器
+    //降低栈：dst和src1都是sp寄存器
     if (dst->isReg() && dst->getReg() == 13 && src1->isReg() && src1->getReg() == 13 && (*(it + 1))->isBX()) 
     {
         int size = parent->AllocSpace(0);
@@ -529,7 +529,7 @@ void MachineBlock::outputBlockAdd(InsIterType it)
 
 void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& first, int num)
 {
-    if ((*it)->isBX()) //是分支指令
+    if ((*it)->isBX()) //是分支指令的bx
     {
         outputBlockBx();
     }
@@ -551,6 +551,7 @@ void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& fir
         //这样就会把要加载的数据保存在文字池内，再用ARM的加载指令读出数据
         temp+=".LTORG\n";
         fprintf(yyout,"%s",temp.c_str());
+        //
         parent->getParent()->printGlobal();
         //
         temp=".B"+std::to_string(label++)+":\n";
@@ -593,7 +594,7 @@ void MachineFunction::output()
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
     auto sp = MachineOperand::newReg(MachineOperand::RegType::SP);
     auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
-    //1. Save fp保存栈顶指针
+    //1. 保存寄存器
     (new StackMInstrcuton(nullptr, StackMInstrcuton::PUSH, getSavedRegs(), fp, lr))->output();
 
     //2. fp = sp抬高栈
@@ -617,26 +618,10 @@ void MachineFunction::output()
     {
         (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, size)) ->output();
     }
-    long long count = 0;
     std::string temp;
     for (auto iter : block_list) 
     {
         iter->output();
-        count += iter->getSize();
-        if(count <= 160)
-        {
-            continue;
-        }
-        //	b .F0
-        temp = "\tb .F"+std::to_string(parent->getN())+"\n";
-        //.LTORG
-        temp+=".LTORG\n";
-        fprintf(yyout,"%s",temp.c_str());
-        //全局常变量地址
-        parent->printGlobal();
-        //.F0:
-        fprintf(yyout, ".F%d:\n", parent->getN()-1);
-        count = 0;
     }
     fprintf(yyout, "\n");
 }
@@ -688,7 +673,7 @@ void MachineUnit::printIDSymbleEntry(IdentifierSymbolEntry* se)
     }
 }
 
-//常量数组声明
+//常量声明
 void MachineUnit::printConstIndices(std::vector<int> constIdx)
 {
     //.section 来定义一个段，每个段以段名开始，以下一段名或者文件结 尾结束
@@ -701,11 +686,13 @@ void MachineUnit::printConstIndices(std::vector<int> constIdx)
     }
 }
 
+//未初始化
 void MachineUnit::printZeroIndices(std::vector<int> zeroIdx)
 {
     for (auto i : zeroIdx) 
     {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
+        //声明未初始化的数据的通用内存区域
         if (se->getType()->isArray()) 
         {
             fprintf(yyout,"\t.comm %s, %d, 4\n", se->toStr().c_str(), se->getType()->getSize() / 8);
@@ -727,19 +714,19 @@ void MachineUnit::PrintGlobalDecl()
     for (long unsigned int i = 0; i < global_list.size(); i++) 
     {
         IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)global_list[i];
-        if (se->getConst()) 
+        if (se->getConst()) //常量
         {
             constIdx.emplace_back(i);
             continue;
         } 
-        else if (se->isAllZero()) 
+        else if (se->isAllZero()) //未初始化
         {
             zeroIdx.emplace_back(i);
             continue;
         } 
        printIDSymbleEntry(se);
     }
-    //数组
+    //常量
     if (!constIdx.empty()) 
     {
        printConstIndices(constIdx);

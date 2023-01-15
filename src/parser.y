@@ -8,15 +8,15 @@
 
     int yylex();
     int yyerror(char const*);
-    ArrayType* arrayType;
-    int idx;
-    int* arrayValue;
-    std::stack<InitValueListExpr*> stk;
+    ArrayType* arrayType;//数组类型
+    int idx;//索引
+    int* arrayValue;//数组所有元素的值
+    std::stack<InitValueListExpr*> stk;//存储元素
     std::stack<StmtNode*> whileStk;
     InitValueListExpr* top;
-    int leftCnt = 0;
+    int leftCnt = 0;//嵌套的{个数
     int InWhileStmt = 0;
-    int paramNo = 0;
+    int paramNo = 0;//函数的第几个参数
     bool hasRet=true;//类型检查06：int函数无返回值
     bool IsvoidFunc=false;//类型检查05：void函数有返回值
     bool voidOp=false;//类型检查07：检查两端如果是函数的话是否为void类型
@@ -797,17 +797,20 @@ VarDef
         $$ = new DeclStmt(new Id(se));
         delete []$1;
     }
-    | ID ArrayIndices {
+    | ID ArrayIndices 
+    {
         SymbolEntry* se;
         std::vector<int> vec;
         ExprNode* temp = $2;
-        while(temp){
+        while(temp)
+        {
             vec.push_back(temp->getValue());
             temp = (ExprNode*)(temp->getNext());
         }
         Type *type = TypeSystem::intType;
         Type* temp1;
-        while(!vec.empty()){
+        while(!vec.empty())
+        {
             temp1 = new ArrayType(type, vec.back());
             if(type->isArray())
                 ((ArrayType*)type)->setArrayType(temp1);
@@ -841,33 +844,42 @@ VarDef
         $$ = new DeclStmt(new Id(se), $3);
         delete []$1;
     }
-    | ID ArrayIndices ASSIGN {
+    | ID ArrayIndices ASSIGN 
+    {
         SymbolEntry* se;
-        std::vector<int> vec;
+        std::vector<int> vec;//记录数组各个维度长度，如a[3][2]记录3，2
         ExprNode* temp = $2;
-        while(temp){
+        while(temp)
+        {
             vec.push_back(temp->getValue());
             temp = (ExprNode*)(temp->getNext());
         }
         Type* type = TypeSystem::intType;
         Type* temp1;
-        for(auto it = vec.rbegin(); it != vec.rend(); it++) {
+        //从最低维度开始向上计算分配的长度
+        for(auto it = vec.rbegin(); it != vec.rend(); it++) 
+        {
+            //type.h83
             temp1 = new ArrayType(type, *it);
+            //向上遍历分配
             if(type->isArray())
                 ((ArrayType*)type)->setArrayType(temp1);
             type = temp1;
         }
+        //arrayType此时是最高维度数组
         arrayType = (ArrayType*)type;
         idx = 0;
+        //清空栈
         std::stack<InitValueListExpr*>().swap(stk);
         se = new IdentifierSymbolEntry(type, $1, identifiers->getLevel());
         //类型检查02：常变量重定义
         if(!identifiers->install($1, se))
         {    
             fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)$1);
-            assert(1==0);//中断运行
+            //assert(1==0);//中断运行
         }
         $<se>$ = se;
+        //为arrayvalue分配空间以记录元素
         arrayValue = new int[arrayType->getSize()];
     }
       InitVal {
@@ -939,25 +951,40 @@ ArrayIndices
         $1->setNext($3);
     }
     ;
+//变量数组
 InitVal 
-    : Exp {
+    : Exp 
+    {
         $$ = $1;
-        if(!stk.empty()){
+        if(!stk.empty())
+        {
+            //赋值
             arrayValue[idx++] = $1->getValue();
             Type* arrTy = stk.top()->getSymPtr()->getType();
+            //到这里是最低维度
             if(arrTy == TypeSystem::intType)
                 stk.top()->addExpr($1);
-            else
-                while(arrTy){
-                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType){
+            else//不是最低维度
+                while(arrTy)
+                {
+                    //下一维度不是最低维度
+                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType)
+                    {
+                        //获取这一维度的数组长度
                         arrTy = ((ArrayType*)arrTy)->getElementType();
                         SymbolEntry* se = new ConstantSymbolEntry(arrTy);
                         InitValueListExpr* list = new InitValueListExpr(se);
+                        //赋值
                         stk.top()->addExpr(list);
                         stk.push(list);
-                    }else{
+                    }
+                    else//下一维度是最低维度
+                    {
+                        //直接给栈顶赋值就好
                         stk.top()->addExpr($1);
-                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                        //全部出栈
+                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt)
+                        {
                             arrTy = ((ArrayType*)arrTy)->getArrayType();
                             stk.pop();
                         }
@@ -976,7 +1003,9 @@ InitVal
             idx += arrayType->getSize() / TypeSystem::intType->getSize();
             se = new ConstantSymbolEntry(arrayType);
             list = new InitValueListExpr(se);
-        }else{
+        }
+        else
+        {
             // 栈不空说明肯定不是只有{}
             // 此时需要确定{}到底占了几个元素
             Type* type = ((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType();
@@ -992,34 +1021,45 @@ InitVal
         }
         $$ = list;
     }
-    | LBRACE {
+    | LBRACE //c[4][2] = {{1, 2}, {3, 4}, {5, 6}, {7, 8}};
+    {
         SymbolEntry* se;
+        //栈不空则说明多个{}嵌套
         if(!stk.empty())
             arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
+        //获取的是值 4*2*i32
         se = new ConstantSymbolEntry(arrayType);
-        if(arrayType->getElementType() != TypeSystem::intType){
+        //如果还有下一维数组
+        if(arrayType->getElementType() != TypeSystem::intType)
+        {
+            //向下一维度
             arrayType = (ArrayType*)(arrayType->getElementType());
         }
+        //
         InitValueListExpr* expr = new InitValueListExpr(se);
+        //栈不空则设置一下值
         if(!stk.empty())
             stk.top()->addExpr(expr);
+        //存入结果中
         stk.push(expr);
         $<exprtype>$ = expr;
         leftCnt++;
     } 
       InitValList RBRACE {
         leftCnt--;
-        while(stk.top() != $<exprtype>2 && stk.size() > (long unsigned int)(leftCnt + 1))
+        
+        while(stk.size() > (long unsigned int)(leftCnt + 1))
             stk.pop();
         if(stk.top() == $<exprtype>2)
             stk.pop();
         $$ = $<exprtype>2;
         if(!stk.empty())
-            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt)
+            {
                 stk.pop();
             }
         int size = ((ArrayType*)($$->getSymPtr()->getType()))->getSize()/ TypeSystem::intType->getSize();
-        while(idx % size != 0)
+        while(idx % size != 0)//未填充部分以0计
             arrayValue[idx++] = 0;
         if(!stk.empty())
             arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());

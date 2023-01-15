@@ -2,8 +2,6 @@
 #include <assert.h>
 #include <sstream>
 
-// 不确定这个size改动会不会导致数组出问题，感觉应该没事
-
 IntType TypeSystem::commonConstInt = IntType(32, true);
 IntType TypeSystem::commonInt = IntType(32);
 IntType TypeSystem::commonBool = IntType(1);

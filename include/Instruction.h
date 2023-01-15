@@ -169,9 +169,10 @@ class RetInstruction : public Instruction {
     void insertBx(AsmBuilder*);
 };
 
+//函数调用
 class CallInstruction : public Instruction {
    private:
-    SymbolEntry* func;
+    SymbolEntry* func;//函数名称
     Operand* dst;
  
    public:
@@ -182,10 +183,10 @@ class CallInstruction : public Instruction {
     ~CallInstruction();
     void output() const;
     void genMachineCode(AsmBuilder*);
-    void insertLeft(AsmBuilder*);
-    void insertRight(AsmBuilder*);
-    void insertBinary(AsmBuilder*);
-    void insertDst(AsmBuilder*);
+    void BelowParams(AsmBuilder*);
+    void OverParams(AsmBuilder*);
+    void BranchRestore(AsmBuilder*);
+    void RetValue(AsmBuilder*);
 };
 
 
@@ -201,18 +202,18 @@ class ExtensionInstruction : public Instruction {
     void genMachineCode(AsmBuilder*);
 };
 
-
+//获取聚合数据结构的子元素的地址
 class GepInstruction : public Instruction {
    private:
-    bool paramFirst;
-    bool first;
-    bool last;
-    Operand* init;
+    bool paramFirst;//是函数参数
+    bool first;//最低维度数组的第一个元素
+    bool last;//最后一个元素
+    Operand* init;//上一个最低维度数组的dst
  
    public:
-    GepInstruction(Operand* dst,
-                   Operand* arr,
-                   Operand* idx,
+    GepInstruction(Operand* dst,//要进行计算原始指针的类型
+                   Operand* arr,//数组首地址指针
+                   Operand* idx,//当于offset,指明要操作的是第几个元素
                    BasicBlock* insert_bb = nullptr,
                    bool paramFirst = false);
     ~GepInstruction();
@@ -231,7 +232,8 @@ class GepInstruction : public Instruction {
     void handleParamFirst(AsmBuilder* builder, MachineOperand*, MachineOperand*);
  
     template<typename... Args>
-    void insertAdd(AsmBuilder* builder, Args... args){
+    void insertAdd(AsmBuilder* builder, Args... args)
+    {
         auto cur_block = builder->getBlock();
         auto cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, args...);
  

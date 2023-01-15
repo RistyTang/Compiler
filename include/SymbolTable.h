@@ -106,7 +106,7 @@ class IdentifierSymbolEntry : public SymbolEntry {
     int* arrayValue;
     bool allZero;
     int paramNo;
-    bool constant;
+    bool constant;  //是否是常量
     Operand* addr;  // The address of the identifier.
                     // You can add any field you need here.
 

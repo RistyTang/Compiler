@@ -328,29 +328,36 @@ void StoreInstruction::output() const {
             src.c_str(), dst_type.c_str(), dst.c_str());
 }
 
-MachineOperand* Instruction::genMachineOperand(Operand* ope) {
+MachineOperand* Instruction::genMachineOperand(Operand* ope) 
+{
     auto se = ope->getEntry();
     MachineOperand* mope = nullptr;
+    //常数
     if (se->isConstant())
         mope = new MachineOperand(
             MachineOperand::IMM,
             dynamic_cast<ConstantSymbolEntry*>(se)->getValue());
+    //临时变量
     else if (se->isTemporary())
         mope = new MachineOperand(
             MachineOperand::VREG,
             dynamic_cast<TemporarySymbolEntry*>(se)->getLabel());
-    else if (se->isVariable()) {
+    //变量
+    else if (se->isVariable()) 
+    {
         auto id_se = dynamic_cast<IdentifierSymbolEntry*>(se);
+        //全局变量
         if (id_se->isGlobal())
             mope = new MachineOperand(id_se->toStr().c_str());
-        else if (id_se->isParam()) {
-            // TODO: 这样分配的是虚拟寄存器 能对应到r0-r3嘛
-            //  r4之后的参数需要一条load 哪里加 怎么判断是r4之后的参数
+        //函数参数
+        else if (id_se->isParam()) 
+        {
+            // TODO: 
             if (id_se->getParamNo() < 4)
                 mope = new MachineOperand(MachineOperand::REG,
                                           id_se->getParamNo());
             else
-                // 用r3代表一下
+                //复用r3
                 mope = new MachineOperand(MachineOperand::REG, 3);
         } else
             exit(0);
@@ -632,6 +639,7 @@ void RetInstruction::insertOperand(AsmBuilder* builder)
     auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, src);
     cur_block->InsertInst(cur_inst);
 }
+
 void RetInstruction::insertFunction(AsmBuilder* builder)
 {
     auto cur_block = builder->getBlock();
@@ -643,18 +651,14 @@ void RetInstruction::insertFunction(AsmBuilder* builder)
                                            sp, sp, size);
     cur_block->InsertInst(cur_inst);
     //有 Callee saved 寄存器，我们还需要生成 POP 指令恢复这些寄存器
+    //这一步在生成bx跳转指令时会完成
 }
  
 void RetInstruction::insertBx(AsmBuilder* builder)
 {
+    //生成跳转指令来返回到 Caller
     auto cur_block = builder->getBlock();
-    //生成 POP 指令恢复 FP 寄存器
-    //auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
-    //auto pop_inst = new StackMInstrcuton(cur_block,StackMInstrcuton::POP,{},fp);
-    //cur_block->InsertInst(pop_inst);
-
     auto lr = MachineOperand::newReg(MachineOperand::RegType::LR);
-    //再生成跳转指令来返回到 Caller
     auto cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::BX, lr);
     cur_block->InsertInst(cur_inst);
 }
@@ -666,8 +670,11 @@ void RetInstruction::genMachineCode(AsmBuilder* builder)
      * 1. Generate mov instruction to save return value in r0
      * 2. Restore callee saved registers and sp, fp
      * 3. Generate bx instruction */
+    //1
     insertOperand(builder);
+    //2
     insertFunction(builder);
+    //3
     insertBx(builder);
 }
 
@@ -685,54 +692,55 @@ CallInstruction::CallInstruction(Operand* dst,
     }
 }
 
-void CallInstruction::insertLeft(AsmBuilder* builder){
+void CallInstruction::BelowParams(AsmBuilder* builder)
+{
     if (!operands.size()){
         return;
     }
     auto cur_block = builder->getBlock();
     auto it = operands.begin() + 1;
-    for (int idx = 0; idx < 4 && it != operands.end(); ++idx, ++it){
+    //使用r0~r3传参
+    for (int idx = 0; idx < 4 && it != operands.end(); ++idx, ++it)
+    {
         auto operand = genMachineReg(idx);
         auto src = genMachineOperand(operands[idx+1]);
         MachineInstruction* cur_inst = nullptr;
-        if (src->isImm() && src->getVal() > 255) {
-            cur_inst = new LoadMInstruction(cur_block, operand, src);
-        } else {
-            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, operand, src);
-        }
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, operand, src);
         cur_block->InsertInst(cur_inst);
     }
 }
 
-void CallInstruction::insertRight(AsmBuilder* builder){
+void CallInstruction::OverParams(AsmBuilder* builder)
+{
     auto cur_block = builder->getBlock();
-    for (int i = operands.size() - 1; i > 4; i--) {
+    for (int i = operands.size() - 1; i > 4; i--) 
+    {
         auto operand = genMachineOperand(operands[i]);
-        if (operand->isImm()) {
+        //操作对象是立即数
+        if (operand->isImm()) 
+        {
             MachineInstruction* cur_inst = nullptr;
             auto dst = MachineOperand::newVReg();
-            if (operand->getVal() < 256){
-                cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV,
-                                               dst, operand);
-            } else {
-                cur_inst = new LoadMInstruction(cur_block, dst, operand);
-            }
+            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, operand);
             cur_block->InsertInst(cur_inst);
             operand = dst;
         }
-        std::vector<MachineOperand*> vec;
-        auto cur_inst = new StackMInstrcuton(cur_block, StackMInstrcuton::PUSH, vec,
-                                        operand);
+        //生成push指令传递参数
+        auto cur_inst = new StackMInstrcuton(cur_block, StackMInstrcuton::PUSH, {}, operand);
         cur_block->InsertInst(cur_inst);
     }
 }
 
-void CallInstruction::insertBinary(AsmBuilder* builder){
+void CallInstruction::BranchRestore(AsmBuilder* builder)
+{
     auto cur_block = builder->getBlock();
     auto label = new MachineOperand(func->toStr().c_str());
+    //跳转执行
     auto cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::BL, label);
     cur_block->InsertInst(cur_inst);
-    if (operands.size() > 5) {
+    //恢复SP
+    if (operands.size() >= 5) 
+    {
         auto off = MachineOperand::newImm((operands.size() - 5) * 4);
         auto sp = MachineOperand::newReg(MachineOperand::RegType::SP);
         auto cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD,
@@ -741,9 +749,12 @@ void CallInstruction::insertBinary(AsmBuilder* builder){
     }
 }
 
-void CallInstruction::insertDst(AsmBuilder* builder){
+void CallInstruction::RetValue(AsmBuilder* builder)
+{
     auto cur_block = builder->getBlock();
-    if (dst) {
+    //函数执行结果被用到，还需要保存 R0 寄存器中的返回值。
+    if (dst) 
+    {
         auto operand = genMachineOperand(dst);
         auto r0 = new MachineOperand(MachineOperand::REG, 0);
         auto cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, operand, r0);
@@ -751,7 +762,8 @@ void CallInstruction::insertDst(AsmBuilder* builder){
     }
 }
 
-void CallInstruction::output() const {
+void CallInstruction::output() const 
+{
     fprintf(yyout, "  ");
     if (operands[0])
         fprintf(yyout, "%s = ", operands[0]->toStr().c_str());
@@ -767,11 +779,14 @@ void CallInstruction::output() const {
     fprintf(yyout, ")\n");
 }
 
-void CallInstruction::genMachineCode(AsmBuilder* builder) {
-    insertLeft(builder);
-    insertRight(builder);
-    insertBinary(builder);
-    insertDst(builder);
+void CallInstruction::genMachineCode(AsmBuilder* builder) 
+{
+    //对于含参函数，需要使用 R0-R3 寄存器传递参数
+    BelowParams(builder);
+    //如果参数个数大于四个还需要生成 PUSH 指令来传递参数；
+    OverParams(builder);
+    BranchRestore(builder);
+    RetValue(builder);
 }
 
 CallInstruction::~CallInstruction() {
@@ -817,32 +832,33 @@ GepInstruction::GepInstruction(Operand* dst,
     operands.push_back(dst);
     operands.push_back(arr);
     operands.push_back(idx);
-    dst->setDef(this);
+    dst->setDef(this);//要进行计算原始指针的类型
     arr->addUse(this);
-    idx->addUse(this);
+    idx->addUse(this);//相当于offset,指明要操作的是第几个元素
     first = false;
     init = nullptr;
     last = false;
 }
 
-void GepInstruction::output() const {
+void GepInstruction::output() const 
+{
     Operand* dst = operands[0];
     Operand* arr = operands[1];
     Operand* idx = operands[2];
     std::string arrType = arr->getType()->toStr();
-    // Type* type = ((PointerType*)(arr->getType()))->getType();
-    // ArrayType* type1 = (ArrayType*)(((ArrayType*)type)->getArrayType());
-    // if (type->isInt() || (type1 && type1->getLength() == -1))
+    //%op2 = getelementptr [10 x i32], [10 x i32]* %op1, i32 0, i32 0
     if (paramFirst)
-        fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s\n",
+        fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s\n",//inbounds为越界检查
                 dst->toStr().c_str(),
-                arrType.substr(0, arrType.size() - 1).c_str(), arrType.c_str(),
+                arrType.substr(0, arrType.size() - 1).c_str(), 
+                arrType.c_str(),
                 arr->toStr().c_str(), idx->toStr().c_str());
     else
-        fprintf(
-            yyout, "  %s = getelementptr inbounds %s, %s %s, i32 0, i32 %s\n",
-            dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
-            arrType.c_str(), arr->toStr().c_str(), idx->toStr().c_str());
+        fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 0, i32 %s\n",
+                dst->toStr().c_str(),
+                arrType.substr(0, arrType.size() - 1).c_str(),
+                arrType.c_str(),
+                arr->toStr().c_str(), idx->toStr().c_str());
 }
 
 GepInstruction::~GepInstruction() {
@@ -863,37 +879,47 @@ void ExtensionInstruction::genMachineCode(AsmBuilder* builder)
     cur_block->InsertInst(cur_inst);
 }
 
-void GepInstruction::genInit(AsmBuilder* builder){
-    auto cur_block = builder->getBlock();
-    auto dst = genMachineOperand(operands[0]);
-    if(last){
+void GepInstruction::genInit(AsmBuilder* builder)
+{
+    //如果是最后一个gep
+    if(last)
+    {
+        auto cur_block = builder->getBlock();
+        auto dst = genMachineOperand(operands[0]);
         auto base = genMachineOperand(init);
-        auto cur_inst = new BinaryMInstruction(
-            cur_block, BinaryMInstruction::ADD, dst, base, MachineOperand::newImm(4));
+        //在生成下一个gep之前需要+4以使得dst指向新一维度的首个元素地址
+        auto cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, base, MachineOperand::newImm(4));
         cur_block->InsertInst(cur_inst);
     }
 }
 
-void GepInstruction::insertImm(AsmBuilder* builder, MachineOperand* &idx){
-    if (!idx->isImm()) {
+void GepInstruction::insertImm(AsmBuilder* builder, MachineOperand* &idx)
+{
+    //索引一定是立即数
+    if (!idx->isImm()) 
+    {
         return;
     }
     auto idx1 = MachineOperand::newVReg();
     auto cur_block = builder->getBlock();
     MachineInstruction* cur_inst = nullptr;
-    if (idx->getVal() < 255) {
-        cur_inst =
-            new MovMInstruction(cur_block, MovMInstruction::MOV, idx1, idx);
-    } else {
+    if (idx->getVal() < 255) //合法立即数则直接mov即可。
+    {
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, idx1, idx);
+    } 
+    else //非合法立即数利用ldr伪指令
+    {
         cur_inst = new LoadMInstruction(cur_block, idx1, idx);
     }
     idx = new MachineOperand(*idx1);
     cur_block->InsertInst(cur_inst);
 }
 
-void GepInstruction::calcSize(AsmBuilder* builder, int& size){
- 
-    if (paramFirst) {
+void GepInstruction::calcSize(AsmBuilder* builder, int& size)
+{
+    //如果是参数
+    if (paramFirst) 
+    {
         size = ((PointerType*)(operands[1]->getType()))->getType()->getSize() / 8;
         return;
     }
@@ -902,85 +928,106 @@ void GepInstruction::calcSize(AsmBuilder* builder, int& size){
  
 }
 
-void GepInstruction::insertMovLoad(AsmBuilder* builder, int v, MachineOperand*& vreg){
-    auto imm = MachineOperand::newImm(v);
+//记录该元素的偏移量
+void GepInstruction::insertMovLoad(AsmBuilder* builder, int v, MachineOperand*& vreg)
+{
+    auto imm = MachineOperand::newImm(v);//偏移量
     vreg = MachineOperand::newVReg();
     MachineInstruction* cur_inst = nullptr;
     auto cur_block = builder->getBlock();
-    if (v > -255 && v < 255) {
+    if (v > -255 && v < 255) //偏移量合法则使用mov
+    {
         cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, vreg, imm);
-    } else {
+    } 
+    else 
+    {
         cur_inst = new LoadMInstruction(cur_block, vreg, imm);
     }
     cur_block->InsertInst(cur_inst);
 }
 
-void GepInstruction::handleFirst(AsmBuilder* builder, MachineOperand*& base){
-    if (!first) {
+void GepInstruction::handleFirst(AsmBuilder* builder, MachineOperand*& base)
+{
+    if (!first) 
+    {
         return;
     }
+    //如果是第一个元素
     auto cur_block = builder->getBlock();
     MachineInstruction* cur_inst;
     base = MachineOperand::newVReg();
-    if (operands[1]->getEntry()->isVariable() &&
-        ((IdentifierSymbolEntry*)(operands[1]->getEntry()))
-            ->isGlobal()) {
+    //如果arr是全局变量
+    if (operands[1]->getEntry()->isVariable() && ((IdentifierSymbolEntry*)(operands[1]->getEntry())) ->isGlobal()) 
+    {
         auto src = genMachineOperand(operands[1]);
+        //把这个一维数组的地址放进base中
         cur_inst = new LoadMInstruction(cur_block, base, src);
         cur_block->InsertInst(cur_inst);
         return;
     }
-    int offset = ((TemporarySymbolEntry*)(operands[1]->getEntry()))
-                        ->getOffset();
+    //如果是局部变量或者函数参数
+    //获取偏移量
+    int offset = ((TemporarySymbolEntry*)(operands[1]->getEntry())) ->getOffset();
     insertMovLoad(builder, offset, base);
 }
 
-void GepInstruction::handleParamFirst(AsmBuilder* builder, MachineOperand* base, MachineOperand* off){
+void GepInstruction::handleParamFirst(AsmBuilder* builder, MachineOperand* base, MachineOperand* off)
+{
     auto dst = genMachineOperand(operands[0]);
- 
     auto cur_block = builder->getBlock();
-    if (paramFirst || !first) {
+    if (paramFirst || !first) //如果不是函数参数数组中一维数组第一个元素
+    {
         auto arr = genMachineOperand(operands[1]);
-        insertAdd(builder, dst, arr, off);
+        insertAdd(builder, dst, arr, off);//根据偏移量计算即可
         return;
     }
+    //如果是
     MachineInstruction* cur_inst = nullptr;
     auto addr = MachineOperand::newVReg();
     auto base1 = new MachineOperand(*base);
- 
+    
     insertAdd(builder, addr, base1, off);
     addr = new MachineOperand(*addr);
-    if (operands[1]->getEntry()->isVariable() &&
-        ((IdentifierSymbolEntry*)(operands[1]->getEntry()))->isGlobal()) {
-        cur_inst =
-            new MovMInstruction(cur_block, MovMInstruction::MOV, dst, addr);
+    //全局变量则需要存储结果地址
+    if (operands[1]->getEntry()->isVariable() && ((IdentifierSymbolEntry*)(operands[1]->getEntry()))->isGlobal()) 
+    {
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, addr);
         cur_block->InsertInst(cur_inst);
         return;
     }
     auto fp = MachineOperand::newReg(MachineOperand::RegType::FP);
+    //下一个元素位置
     insertAdd(builder, dst, fp, addr);
 }
 
-
-void GepInstruction::genMachineCode(AsmBuilder* builder) {
-    if(init){
+void GepInstruction::genMachineCode(AsmBuilder* builder) 
+{
+    //如果不是一开始的最低维度
+    if(init)
+    {
         genInit(builder);
         return;
     }
+    
+    //如果是在最开始的最低维度，需要对索引的立即数进行合法性调整
     auto cur_block = builder->getBlock();
     MachineInstruction* cur_inst;
     auto idx = genMachineOperand(operands[2]);
-    MachineOperand* base = nullptr;
-    int size;
+    MachineOperand* base = nullptr;//这一维数组的首地址
+    int size;//一维数组的大小
+    //对索引的立即数进行合法性调整
     insertImm(builder, idx);
+    //确定该一维数组大小
     calcSize(builder, size);
+    //第一个元素需要特殊处理
     handleFirst(builder, base);
     MachineOperand* size1 = nullptr;
+    //不是第一个元素无需处理，直接寻找下一个一维数组
     insertMovLoad(builder, size, size1);
     auto off = MachineOperand::newVReg();
-    cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::MUL, off,
-                                      idx, size1);
+    cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::MUL, off, idx, size1);
     off = new MachineOperand(*off);
     cur_block->InsertInst(cur_inst);
+
     handleParamFirst(builder, base, off);
 }

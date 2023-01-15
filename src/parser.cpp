@@ -70,15 +70,15 @@
 
     int yylex();
     int yyerror(char const*);
-    ArrayType* arrayType;
-    int idx;
-    int* arrayValue;
-    std::stack<InitValueListExpr*> stk;
+    ArrayType* arrayType;//数组类型
+    int idx;//索引
+    int* arrayValue;//数组所有元素的值
+    std::stack<InitValueListExpr*> stk;//存储元素
     std::stack<StmtNode*> whileStk;
     InitValueListExpr* top;
-    int leftCnt = 0;
+    int leftCnt = 0;//嵌套的{个数
     int InWhileStmt = 0;
-    int paramNo = 0;
+    int paramNo = 0;//函数的第几个参数
     bool hasRet=true;//类型检查06：int函数无返回值
     bool IsvoidFunc=false;//类型检查05：void函数有返回值
     bool voidOp=false;//类型检查07：检查两端如果是函数的话是否为void类型
@@ -527,10 +527,10 @@ static const yytype_uint16 yyrline[] =
      305,   324,   345,   346,   375,   404,   435,   436,   465,   496,
      499,   528,   557,   586,   617,   618,   647,   678,   679,   710,
      711,   742,   745,   746,   751,   754,   761,   762,   765,   768,
-     774,   778,   781,   785,   788,   800,   831,   844,   844,   882,
-     897,   897,   934,   937,   943,   969,   995,   995,  1030,  1056,
-    1082,  1082,  1115,  1118,  1123,  1126,  1132,  1142,  1132,  1178,
-    1179,  1181,  1185,  1191,  1200,  1227,  1230
+     774,   778,   781,   785,   788,   800,   834,   848,   847,   894,
+     909,   909,   946,   949,   956,   996,  1025,  1024,  1070,  1096,
+    1122,  1122,  1155,  1158,  1163,  1166,  1172,  1182,  1172,  1218,
+    1219,  1221,  1225,  1231,  1240,  1267,  1270
 };
 #endif
 
@@ -2473,18 +2473,20 @@ yyreduce:
     break;
 
   case 75:
-#line 800 "src/parser.y" /* yacc.c:1646  */
+#line 801 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         std::vector<int> vec;
         ExprNode* temp = (yyvsp[0].exprtype);
-        while(temp){
+        while(temp)
+        {
             vec.push_back(temp->getValue());
             temp = (ExprNode*)(temp->getNext());
         }
         Type *type = TypeSystem::intType;
         Type* temp1;
-        while(!vec.empty()){
+        while(!vec.empty())
+        {
             temp1 = new ArrayType(type, vec.back());
             if(type->isArray())
                 ((ArrayType*)type)->setArrayType(temp1);
@@ -2505,11 +2507,11 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id(se));
         delete [](yyvsp[-1].strtype);
     }
-#line 2509 "src/parser.cpp" /* yacc.c:1646  */
+#line 2511 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 76:
-#line 831 "src/parser.y" /* yacc.c:1646  */
+#line 834 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::intType, (yyvsp[-2].strtype), identifiers->getLevel());
@@ -2523,45 +2525,53 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id(se), (yyvsp[0].exprtype));
         delete [](yyvsp[-2].strtype);
     }
-#line 2527 "src/parser.cpp" /* yacc.c:1646  */
+#line 2529 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 77:
-#line 844 "src/parser.y" /* yacc.c:1646  */
+#line 848 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
-        std::vector<int> vec;
+        std::vector<int> vec;//记录数组各个维度长度，如a[3][2]记录3，2
         ExprNode* temp = (yyvsp[-1].exprtype);
-        while(temp){
+        while(temp)
+        {
             vec.push_back(temp->getValue());
             temp = (ExprNode*)(temp->getNext());
         }
         Type* type = TypeSystem::intType;
         Type* temp1;
-        for(auto it = vec.rbegin(); it != vec.rend(); it++) {
+        //从最低维度开始向上计算分配的长度
+        for(auto it = vec.rbegin(); it != vec.rend(); it++) 
+        {
+            //type.h83
             temp1 = new ArrayType(type, *it);
+            //向上遍历分配
             if(type->isArray())
                 ((ArrayType*)type)->setArrayType(temp1);
             type = temp1;
         }
+        //arrayType此时是最高维度数组
         arrayType = (ArrayType*)type;
         idx = 0;
+        //清空栈
         std::stack<InitValueListExpr*>().swap(stk);
         se = new IdentifierSymbolEntry(type, (yyvsp[-2].strtype), identifiers->getLevel());
         //类型检查02：常变量重定义
         if(!identifiers->install((yyvsp[-2].strtype), se))
         {    
             fprintf(stderr, "常变量名 \"%s\" 重定义\n", (char*)(yyvsp[-2].strtype));
-            assert(1==0);//中断运行
+            //assert(1==0);//中断运行
         }
         (yyval.se) = se;
+        //为arrayvalue分配空间以记录元素
         arrayValue = new int[arrayType->getSize()];
     }
-#line 2561 "src/parser.cpp" /* yacc.c:1646  */
+#line 2571 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 78:
-#line 873 "src/parser.y" /* yacc.c:1646  */
+#line 885 "src/parser.y" /* yacc.c:1646  */
     {
         ((IdentifierSymbolEntry*)(yyvsp[-1].se))->setArrayValue(arrayValue);
         if(((InitValueListExpr*)(yyvsp[0].exprtype))->isEmpty())
@@ -2569,11 +2579,11 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id((yyvsp[-1].se)), (yyvsp[0].exprtype));
         delete [](yyvsp[-4].strtype);
     }
-#line 2573 "src/parser.cpp" /* yacc.c:1646  */
+#line 2583 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 79:
-#line 882 "src/parser.y" /* yacc.c:1646  */
+#line 894 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry(TypeSystem::constIntType, (yyvsp[-2].strtype), identifiers->getLevel());
@@ -2589,11 +2599,11 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id(se), (yyvsp[0].exprtype));
         delete [](yyvsp[-2].strtype);
     }
-#line 2593 "src/parser.cpp" /* yacc.c:1646  */
+#line 2603 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 80:
-#line 897 "src/parser.y" /* yacc.c:1646  */
+#line 909 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         std::vector<int> vec;
@@ -2618,11 +2628,11 @@ yyreduce:
         (yyval.se) = se;
         arrayValue = new int[arrayType->getSize()];
     }
-#line 2622 "src/parser.cpp" /* yacc.c:1646  */
+#line 2632 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 81:
-#line 921 "src/parser.y" /* yacc.c:1646  */
+#line 933 "src/parser.y" /* yacc.c:1646  */
     {
         ((IdentifierSymbolEntry*)(yyvsp[-1].se))->setArrayValue(arrayValue);
         //类型检查02：常变量重定义
@@ -2634,46 +2644,59 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id((yyvsp[-1].se)), (yyvsp[0].exprtype));
         delete [](yyvsp[-4].strtype);
     }
-#line 2638 "src/parser.cpp" /* yacc.c:1646  */
+#line 2648 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 82:
-#line 934 "src/parser.y" /* yacc.c:1646  */
+#line 946 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[-1].exprtype);
     }
-#line 2646 "src/parser.cpp" /* yacc.c:1646  */
+#line 2656 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 83:
-#line 937 "src/parser.y" /* yacc.c:1646  */
+#line 949 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[-3].exprtype);
         (yyvsp[-3].exprtype)->setNext((yyvsp[-1].exprtype));
     }
-#line 2655 "src/parser.cpp" /* yacc.c:1646  */
+#line 2665 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 84:
-#line 943 "src/parser.y" /* yacc.c:1646  */
+#line 957 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[0].exprtype);
-        if(!stk.empty()){
+        if(!stk.empty())
+        {
+            //赋值
             arrayValue[idx++] = (yyvsp[0].exprtype)->getValue();
             Type* arrTy = stk.top()->getSymPtr()->getType();
+            //到这里是最低维度
             if(arrTy == TypeSystem::intType)
                 stk.top()->addExpr((yyvsp[0].exprtype));
-            else
-                while(arrTy){
-                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType){
+            else//不是最低维度
+                while(arrTy)
+                {
+                    //下一维度不是最低维度
+                    if(((ArrayType*)arrTy)->getElementType() != TypeSystem::intType)
+                    {
+                        //获取这一维度的数组长度
                         arrTy = ((ArrayType*)arrTy)->getElementType();
                         SymbolEntry* se = new ConstantSymbolEntry(arrTy);
                         InitValueListExpr* list = new InitValueListExpr(se);
+                        //赋值
                         stk.top()->addExpr(list);
                         stk.push(list);
-                    }else{
+                    }
+                    else//下一维度是最低维度
+                    {
+                        //直接给栈顶赋值就好
                         stk.top()->addExpr((yyvsp[0].exprtype));
-                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+                        //全部出栈
+                        while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt)
+                        {
                             arrTy = ((ArrayType*)arrTy)->getArrayType();
                             stk.pop();
                         }
@@ -2682,11 +2705,11 @@ yyreduce:
                 }
         }         
     }
-#line 2686 "src/parser.cpp" /* yacc.c:1646  */
+#line 2709 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 85:
-#line 969 "src/parser.y" /* yacc.c:1646  */
+#line 996 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         ExprNode* list;
@@ -2697,7 +2720,9 @@ yyreduce:
             idx += arrayType->getSize() / TypeSystem::intType->getSize();
             se = new ConstantSymbolEntry(arrayType);
             list = new InitValueListExpr(se);
-        }else{
+        }
+        else
+        {
             // 栈不空说明肯定不是只有{}
             // 此时需要确定{}到底占了几个元素
             Type* type = ((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType();
@@ -2713,53 +2738,63 @@ yyreduce:
         }
         (yyval.exprtype) = list;
     }
-#line 2717 "src/parser.cpp" /* yacc.c:1646  */
+#line 2742 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 86:
-#line 995 "src/parser.y" /* yacc.c:1646  */
+#line 1025 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
+        //栈不空则说明多个{}嵌套
         if(!stk.empty())
             arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
+        //获取的是值 4*2*i32
         se = new ConstantSymbolEntry(arrayType);
-        if(arrayType->getElementType() != TypeSystem::intType){
+        //如果还有下一维数组
+        if(arrayType->getElementType() != TypeSystem::intType)
+        {
+            //向下一维度
             arrayType = (ArrayType*)(arrayType->getElementType());
         }
+        //
         InitValueListExpr* expr = new InitValueListExpr(se);
+        //栈不空则设置一下值
         if(!stk.empty())
             stk.top()->addExpr(expr);
+        //存入结果中
         stk.push(expr);
         (yyval.exprtype) = expr;
         leftCnt++;
     }
-#line 2737 "src/parser.cpp" /* yacc.c:1646  */
+#line 2770 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 87:
-#line 1010 "src/parser.y" /* yacc.c:1646  */
+#line 1048 "src/parser.y" /* yacc.c:1646  */
     {
         leftCnt--;
-        while(stk.top() != (yyvsp[-2].exprtype) && stk.size() > (long unsigned int)(leftCnt + 1))
+        
+        while(stk.size() > (long unsigned int)(leftCnt + 1))
             stk.pop();
         if(stk.top() == (yyvsp[-2].exprtype))
             stk.pop();
         (yyval.exprtype) = (yyvsp[-2].exprtype);
         if(!stk.empty())
-            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt){
+            while(stk.top()->isFull() && stk.size() != (long unsigned int)leftCnt)
+            {
                 stk.pop();
             }
         int size = ((ArrayType*)((yyval.exprtype)->getSymPtr()->getType()))->getSize()/ TypeSystem::intType->getSize();
-        while(idx % size != 0)
+        while(idx % size != 0)//未填充部分以0计
             arrayValue[idx++] = 0;
         if(!stk.empty())
             arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
     }
-#line 2759 "src/parser.cpp" /* yacc.c:1646  */
+#line 2794 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 88:
-#line 1030 "src/parser.y" /* yacc.c:1646  */
+#line 1070 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[0].exprtype);
         if(!stk.empty()){
@@ -2786,11 +2821,11 @@ yyreduce:
                 }
         }
     }
-#line 2790 "src/parser.cpp" /* yacc.c:1646  */
+#line 2825 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 89:
-#line 1056 "src/parser.y" /* yacc.c:1646  */
+#line 1096 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         ExprNode* list;
@@ -2817,11 +2852,11 @@ yyreduce:
         }
         (yyval.exprtype) = list;
     }
-#line 2821 "src/parser.cpp" /* yacc.c:1646  */
+#line 2856 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 90:
-#line 1082 "src/parser.y" /* yacc.c:1646  */
+#line 1122 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         if(!stk.empty())
@@ -2837,11 +2872,11 @@ yyreduce:
         (yyval.exprtype) = expr;
         leftCnt++;
     }
-#line 2841 "src/parser.cpp" /* yacc.c:1646  */
+#line 2876 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 91:
-#line 1097 "src/parser.y" /* yacc.c:1646  */
+#line 1137 "src/parser.y" /* yacc.c:1646  */
     {
         leftCnt--;
         while(stk.top() != (yyvsp[-2].exprtype) && stk.size() > (long unsigned int)(leftCnt + 1))
@@ -2858,43 +2893,43 @@ yyreduce:
         if(!stk.empty())
             arrayType = (ArrayType*)(((ArrayType*)(stk.top()->getSymPtr()->getType()))->getElementType());
     }
-#line 2862 "src/parser.cpp" /* yacc.c:1646  */
+#line 2897 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 92:
-#line 1115 "src/parser.y" /* yacc.c:1646  */
+#line 1155 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[0].exprtype);
     }
-#line 2870 "src/parser.cpp" /* yacc.c:1646  */
+#line 2905 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 93:
-#line 1118 "src/parser.y" /* yacc.c:1646  */
+#line 1158 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[-2].exprtype);
     }
-#line 2878 "src/parser.cpp" /* yacc.c:1646  */
+#line 2913 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 94:
-#line 1123 "src/parser.y" /* yacc.c:1646  */
+#line 1163 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[0].exprtype);
     }
-#line 2886 "src/parser.cpp" /* yacc.c:1646  */
+#line 2921 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 95:
-#line 1126 "src/parser.y" /* yacc.c:1646  */
+#line 1166 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[-2].exprtype);
     }
-#line 2894 "src/parser.cpp" /* yacc.c:1646  */
+#line 2929 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 96:
-#line 1132 "src/parser.y" /* yacc.c:1646  */
+#line 1172 "src/parser.y" /* yacc.c:1646  */
     {
         // SymbolTable::resetLabel();
         identifiers = new SymbolTable(identifiers);
@@ -2905,11 +2940,11 @@ yyreduce:
             hasRet=false;
         }
     }
-#line 2909 "src/parser.cpp" /* yacc.c:1646  */
+#line 2944 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 97:
-#line 1142 "src/parser.y" /* yacc.c:1646  */
+#line 1182 "src/parser.y" /* yacc.c:1646  */
     {
         Type* funcType;
         std::vector<Type*> vec;
@@ -2929,11 +2964,11 @@ yyreduce:
         }
         (yyval.se) = se; 
     }
-#line 2933 "src/parser.cpp" /* yacc.c:1646  */
+#line 2968 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 98:
-#line 1161 "src/parser.y" /* yacc.c:1646  */
+#line 1201 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.stmttype) = new FunctionDef((yyvsp[-1].se), (DeclStmt*)(yyvsp[-3].stmttype), (yyvsp[0].stmttype));
         SymbolTable* top = identifiers;
@@ -2948,40 +2983,40 @@ yyreduce:
             hasRet=true;
         }
     }
-#line 2952 "src/parser.cpp" /* yacc.c:1646  */
+#line 2987 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 99:
-#line 1178 "src/parser.y" /* yacc.c:1646  */
+#line 1218 "src/parser.y" /* yacc.c:1646  */
     {(yyval.stmttype) = (yyvsp[0].stmttype);}
-#line 2958 "src/parser.cpp" /* yacc.c:1646  */
+#line 2993 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 100:
-#line 1179 "src/parser.y" /* yacc.c:1646  */
+#line 1219 "src/parser.y" /* yacc.c:1646  */
     {(yyval.stmttype) = nullptr;}
-#line 2964 "src/parser.cpp" /* yacc.c:1646  */
+#line 2999 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 101:
-#line 1181 "src/parser.y" /* yacc.c:1646  */
+#line 1221 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.stmttype) = (yyvsp[-2].stmttype);
         (yyval.stmttype)->setNext((yyvsp[0].stmttype));
     }
-#line 2973 "src/parser.cpp" /* yacc.c:1646  */
+#line 3008 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 102:
-#line 1185 "src/parser.y" /* yacc.c:1646  */
+#line 1225 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.stmttype) = (yyvsp[0].stmttype);
     }
-#line 2981 "src/parser.cpp" /* yacc.c:1646  */
+#line 3016 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 103:
-#line 1191 "src/parser.y" /* yacc.c:1646  */
+#line 1231 "src/parser.y" /* yacc.c:1646  */
     {
         SymbolEntry* se;
         se = new IdentifierSymbolEntry((yyvsp[-1].type), (yyvsp[0].strtype), identifiers->getLevel(), paramNo++);
@@ -2991,11 +3026,11 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id(se));
         delete [](yyvsp[0].strtype);
     }
-#line 2995 "src/parser.cpp" /* yacc.c:1646  */
+#line 3030 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 104:
-#line 1200 "src/parser.y" /* yacc.c:1646  */
+#line 1240 "src/parser.y" /* yacc.c:1646  */
     {
         // 这里也需要求值
         SymbolEntry* se;
@@ -3021,28 +3056,28 @@ yyreduce:
         (yyval.stmttype) = new DeclStmt(new Id(se));
         delete [](yyvsp[-1].strtype);
     }
-#line 3025 "src/parser.cpp" /* yacc.c:1646  */
+#line 3060 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 105:
-#line 1227 "src/parser.y" /* yacc.c:1646  */
+#line 1267 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = new ExprNode(nullptr);
     }
-#line 3033 "src/parser.cpp" /* yacc.c:1646  */
+#line 3068 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
   case 106:
-#line 1230 "src/parser.y" /* yacc.c:1646  */
+#line 1270 "src/parser.y" /* yacc.c:1646  */
     {
         (yyval.exprtype) = (yyvsp[-3].exprtype);
         (yyval.exprtype)->setNext((yyvsp[-1].exprtype));
     }
-#line 3042 "src/parser.cpp" /* yacc.c:1646  */
+#line 3077 "src/parser.cpp" /* yacc.c:1646  */
     break;
 
 
-#line 3046 "src/parser.cpp" /* yacc.c:1646  */
+#line 3081 "src/parser.cpp" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -3270,7 +3305,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 1234 "src/parser.y" /* yacc.c:1906  */
+#line 1274 "src/parser.y" /* yacc.c:1906  */
 
 
 int yyerror(char const* message)
