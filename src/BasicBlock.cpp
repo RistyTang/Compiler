@@ -7,6 +7,7 @@ extern FILE* yyout;
 // insert the instruction to the front of the basicblock.
 void BasicBlock::insertFront(Instruction *inst)
 {
+    //将当前指令放在dummy instruction之后
     insertBefore(inst, head->getNext());
 }
 
@@ -16,17 +17,18 @@ void BasicBlock::insertBack(Instruction *inst)
     insertBefore(inst, head);
 }
 
+//把dst插在src之前
 // insert the instruction dst before src.
 void BasicBlock::insertBefore(Instruction *dst, Instruction *src)
 {
     // Todo
-    src->getPrev()->setNext(dst);
+    //原来是a->src->b
+    //改为a->dst->src->b
     dst->setPrev(src->getPrev());
-
     dst->setNext(src);
     src->setPrev(dst);
-
-    dst->setParent(this);
+    (dst->getPrev())->setNext(dst);
+    
 }
 
 // remove the instruction from intruction list.
@@ -76,9 +78,13 @@ void BasicBlock::removePred(BasicBlock *bb)
 BasicBlock::BasicBlock(Function *f)
 {
     this->no = SymbolTable::getLabel();
+    //把基本块放进函数里
     f->insertBlock(this);
+    //那么当前基本块就是来自于f函数
     parent = f;
+    //设置当前这个block的第一条指令
     head = new DummyInstruction();
+    //指令来自于这个基本块
     head->setParent(this);
 }
 

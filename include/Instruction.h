@@ -39,9 +39,8 @@ protected:
         CMP,
         ALLOCA,
         CALL,
-        ZEXT,
+        EXTENSION,
         XOR,
-        GEP
     };
 };
 
@@ -146,21 +145,20 @@ class RetInstruction : public Instruction {
 
 //函数调用指令
 class CallInstruction : public Instruction {
-   private:
+private:
+    std::string names;
     SymbolEntry* func;
-
+    std::vector<Operand*> vo;//参数
    public:
-    CallInstruction(Operand* dst,
-                    SymbolEntry* func,
-                    std::vector<Operand*> params,
-                    BasicBlock* insert_bb = nullptr);
+    CallInstruction(Operand* dst,SymbolEntry* func,std::vector<Operand*> params,BasicBlock* insert_bb = nullptr);
     void output() const;
     ~CallInstruction();
 };
 
 //%6 = zext i1 %5 to i32
 //将1位的bool扩展到32位
-class ExtensionInstruction : public Instruction {
+class ExtensionInstruction : public Instruction 
+{
    public:
     ExtensionInstruction(Operand* dst,
                     Operand* src,

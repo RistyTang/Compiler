@@ -198,6 +198,7 @@ WhileStmt
         ((WhileStmt*)whileNode)->setStmt($6);
         $$=whileNode;
         whileStk.pop();
+        //恢复一下
         InWhileStmt--;
     }
     ;
@@ -215,6 +216,9 @@ ReturnStmt
     : RETURN SEMICOLON 
     {
         $$ = new ReturnStmt();
+        //void遇到这个的话是对的
+        hasRet=true;
+        IsvoidFunc=false;
     }
     | RETURN Exp SEMICOLON 
     {

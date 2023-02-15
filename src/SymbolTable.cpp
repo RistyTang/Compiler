@@ -156,7 +156,8 @@ SymbolEntry* SymbolTable::lookup(std::string name)
 bool SymbolTable::install(std::string name, SymbolEntry* entry) 
 {
     // 同时检查是否重定义
-    if (this->symbolTable.find(name) != this->symbolTable.end()) {
+    if (this->symbolTable.find(name) != this->symbolTable.end()) 
+    {
         SymbolEntry* se = this->symbolTable[name];
         if (se->getType()->isFunc())
             return se->setNext(entry);

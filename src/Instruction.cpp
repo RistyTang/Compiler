@@ -5,12 +5,20 @@
 #include "Type.h"
 extern FILE* yyout;
 
-Instruction::Instruction(unsigned instType, BasicBlock* insert_bb) {
+Instruction::Instruction(unsigned instType, BasicBlock* insert_bb) 
+{
+    //该指令的前一条和后一条指令都指向自己
     prev = next = this;
+    //操作码暂时设定为-1
     opcode = -1;
+    //设置指令类型
     this->instType = instType;
-    if (insert_bb != nullptr) {
+    //如果基本块不为空的话
+    if (insert_bb != nullptr)
+    {
+        //说明这个指令是来自于这个基本块，把它放进基本块中
         insert_bb->insertBack(this);
+        //设置当前指令的parent
         parent = insert_bb;
     }
 }
@@ -121,9 +129,11 @@ CmpInstruction::~CmpInstruction() {
     if(operands[2])operands[2]->removeUse(this);
 }
 
-void CmpInstruction::output() const {
+void CmpInstruction::output() const 
+{
     std::string s1, s2, s3, op, type;
     s1 = operands[0]->toStr();
+    //为空则为0，方便比较
     if(operands[1])s2 = operands[1]->toStr();
     else s2="0";
     if(operands[2])s3 = operands[2]->toStr();
@@ -219,8 +229,6 @@ void UncondBrInstruction::setBranch(BasicBlock* bb) {
 BasicBlock* UncondBrInstruction::getBranch() {
     return branch;
 }
-
-
 
 RetInstruction::RetInstruction(Operand* src, BasicBlock* insert_bb)
     : Instruction(RET, insert_bb) {
@@ -333,26 +341,38 @@ CallInstruction::CallInstruction(Operand* dst,SymbolEntry* func,std::vector<Oper
 {
     operands.push_back(dst);
     if (dst)
+    {
         dst->setDef(this);
-    for (auto param : params) {
+    }   
+    this->vo=params;
+    this->names=func->toStr();
+    for (auto param : params) 
+    {
         operands.push_back(param);
         param->addUse(this);
     }
+    
 }
 
 //%18 = call i32 @funb(i32 1, i32 1)
-void CallInstruction::output() const {
+void CallInstruction::output() const 
+{
     fprintf(yyout, "  ");
     if (operands[0])
         fprintf(yyout, "%s = ", operands[0]->toStr().c_str());
     FunctionType* type = (FunctionType*)(func->getType());
-    fprintf(yyout, "call %s %s(", type->getRetType()->toStr().c_str(), func->toStr().c_str());
-    for (long unsigned int i = 1; i < operands.size(); i++) 
+    //不能直接打印names
+    fprintf(yyout, "call %s %s(", type->getRetType()->toStr().c_str(), names.c_str());
+    unsigned int i=0;
+    //放入参数
+    for (auto param : vo) 
     {
-        if (i != 1)
-            fprintf(yyout, ", ");
-        fprintf(yyout, "%s %s", operands[i]->getType()->toStr().c_str(),
-                operands[i]->toStr().c_str());
+        if((i!=0)&&(i!=vo.size()))
+        {
+            fprintf(yyout,", ");
+        }
+        fprintf(yyout,"%s %s",param->getType()->toStr().c_str(),param->toStr().c_str());
+        i++;
     }
     fprintf(yyout, ")\n");
 }
@@ -362,7 +382,7 @@ CallInstruction::~CallInstruction()
     operands[0]->removeUse(this);
 }
 
-ExtensionInstruction::ExtensionInstruction(Operand* dst, Operand* src, BasicBlock* insert_bb) : Instruction(ZEXT, insert_bb) 
+ExtensionInstruction::ExtensionInstruction(Operand* dst, Operand* src, BasicBlock* insert_bb) : Instruction(EXTENSION, insert_bb) 
 {
     operands.push_back(dst);
     operands.push_back(src);
@@ -370,7 +390,9 @@ ExtensionInstruction::ExtensionInstruction(Operand* dst, Operand* src, BasicBloc
     src->addUse(this);
 }
 
-void ExtensionInstruction::output() const {
+//
+void ExtensionInstruction::output() const 
+{
     Operand* dst = operands[0];
     Operand* src = operands[1];
     fprintf(yyout, "  %s = zext %s %s to i32\n", dst->toStr().c_str(),
