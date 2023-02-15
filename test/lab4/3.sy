@@ -1,0 +1,13 @@
+int a;//全局变量a
+int b;
+int main()
+{
+    int a;//不同的a
+    int b;
+    if(1)
+    {
+        a+=2;//main里面的a
+        int a=4;//又是一个新定义的a
+    }
+}
+a=20;//这是最外面的a

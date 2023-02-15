@@ -1,0 +1,13 @@
+[DEBUG LAB4]: 	INT		int		 lineat:1		offset:0
+[DEBUG LAB4]: 	ID		x 		 lineat:1		offset:4 		 IDaddress:0x5646b874b6c0
+[DEBUG LAB4]: 	SEMI	;		 lineat:1		offset:4
+[DEBUG LAB4]: 	WHILE	while	 lineat:2		offset:0
+[DEBUG LAB4]: 	LP		(		 lineat:2		offset:5
+[DEBUG LAB4]: 	DECIMAL	1		 lineat:2		offset:6
+[DEBUG LAB4]: 	RP		)		 lineat:2		offset:7
+[DEBUG LAB4]: 	LC		{		 lineat:3		offset:0 
+x is an undefined variable,are you sure?
+[DEBUG LAB4]: 	EQUAL	=		 lineat:4		offset:4
+[DEBUG LAB4]: 	DECIMAL	3		 lineat:4		offset:5
+[DEBUG LAB4]: 	SEMI	;		 lineat:4		offset:6
+[DEBUG LAB4]: 	RC		}		 lineat:5		offset:1 

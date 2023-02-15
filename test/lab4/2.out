@@ -1,55 +1,79 @@
-//iamafunction:thisfunctionhasmanysyntaxerrors.[DEBUG LAB4]: 	INT	int
-f[DEBUG LAB4]: 	LPAREN	(
-[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-a[DEBUG LAB4]: 	SEMICOLON	;
-a[DEBUG LAB4]: 	ASSIGN	=
-0[DEBUG LAB4]: 	SEMICOLON	;
-while[DEBUG LAB4]: 	LPAREN	(
-a[DEBUG LAB4]: 	LESS	<
-10[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	LBRACE	{
-a[DEBUG LAB4]: 	ASSIGN	=
-a*2345[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-[DEBUG LAB4]: 	RETURN	return
-a[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-[DEBUG LAB4]: 	INT	int
-main[DEBUG LAB4]: 	LPAREN	(
-[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-_testid[DEBUG LAB4]: 	SEMICOLON	;
-_testid[DEBUG LAB4]: 	ASSIGN	=
-0[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	IF	if
-[DEBUG LAB4]: 	LPAREN	(
-_testid[DEBUG LAB4]: 	ASSIGN	=
-[DEBUG LAB4]: 	ASSIGN	=
-0[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-_testid[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	INT	int
-_testid2[DEBUG LAB4]: 	SEMICOLON	;
-_testid1[DEBUG LAB4]: 	ASSIGN	=
-_testid1[DEBUG LAB4]: 	ADD	+
-1[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-/*Commentlines[DEBUG LAB4]: 	SEMICOLON	;
-*/[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-a[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-a[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-[DEBUG LAB4]: 	INT	int
-b[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RETURN	return
-0[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
-/*Commentlines.*/
+[DEBUG LAB4]: 	INT		int		 lineat:3		offset:0
+[DEBUG LAB4]: 	ID		f 		 lineat:3		offset:4 		 IDaddress:0x56331792c6c0
+[DEBUG LAB4]: 	LP		(		 lineat:3		offset:4
+[DEBUG LAB4]: 	RP		)		 lineat:3		offset:5
+[DEBUG LAB4]: 	LC		{		 lineat:3		offset:6 
+[DEBUG LAB4]: 	INT		int		 lineat:4		offset:1
+[DEBUG LAB4]: 	ID		a 		 lineat:4		offset:5 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	SEMI	;		 lineat:4		offset:5
+[DEBUG LAB4]: 	ID		a 		 lineat:5		offset:1 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	EQUAL	=		 lineat:5		offset:2
+[DEBUG LAB4]: 	DECIMAL	0		 lineat:5		offset:4
+[DEBUG LAB4]: 	SEMI	;		 lineat:5		offset:5
+[DEBUG LAB4]: 	WHILE	while	 lineat:6		offset:1
+[DEBUG LAB4]: 	LP		(		 lineat:6		offset:6
+[DEBUG LAB4]: 	ID		a 		 lineat:6		offset:7 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	RELL	<		 lineat:6		offset:7
+[DEBUG LAB4]: 	DECIMAL	10		 lineat:6		offset:8
+[DEBUG LAB4]: 	RP		)		 lineat:6		offset:10
+[DEBUG LAB4]: 	LC		{		 lineat:6		offset:11 
+[DEBUG LAB4]: 	ID		a 		 lineat:7		offset:2 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	EQUAL	=		 lineat:7		offset:3
+[DEBUG LAB4]: 	ID		a 		 lineat:7		offset:5 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	STAR	*		 lineat:7		offset:6
+[DEBUG LAB4]: 	DECIMAL	2345		 lineat:7		offset:8
+[DEBUG LAB4]: 	SEMI	;		 lineat:7		offset:12
+[DEBUG LAB4]: 	RC		}		 lineat:8		offset:2 
+[DEBUG LAB4]: 	RETURN	return		 lineat:9		offset:1
+[DEBUG LAB4]: 	ID		a 		 lineat:9		offset:8 		 IDaddress:0x56331792c770
+[DEBUG LAB4]: 	SEMI	;		 lineat:9		offset:8
+[DEBUG LAB4]: 	RC		}		 lineat:10		offset:1 
+[DEBUG LAB4]: 	INT		int		 lineat:12		offset:0
+[DEBUG LAB4]: 	MAIN	main	 lineat:12		offset:4
+[DEBUG LAB4]: 	LP		(		 lineat:12		offset:8
+[DEBUG LAB4]: 	RP		)		 lineat:12		offset:9
+[DEBUG LAB4]: 	LC		{		 lineat:12		offset:10 
+[DEBUG LAB4]: 	INT		int		 lineat:13		offset:1
+[DEBUG LAB4]: 	ID		_testid 		 lineat:13		offset:5 		 IDaddress:0x56331792c7f0
+[DEBUG LAB4]: 	SEMI	;		 lineat:13		offset:5
+[DEBUG LAB4]: 	ID		_testid 		 lineat:14		offset:1 		 IDaddress:0x56331792c7f0
+[DEBUG LAB4]: 	EQUAL	=		 lineat:14		offset:2
+[DEBUG LAB4]: 	DECIMAL	0		 lineat:14		offset:4
+[DEBUG LAB4]: 	SEMI	;		 lineat:14		offset:5
+[DEBUG LAB4]: 	IF		if		 lineat:15		offset:1
+[DEBUG LAB4]: 	LP		(		 lineat:15		offset:3
+[DEBUG LAB4]: 	ID		_testid 		 lineat:15		offset:4 		 IDaddress:0x56331792c7f0
+[DEBUG LAB4]: 	EQUOP	==		 lineat:15		offset:4
+[DEBUG LAB4]: 	DECIMAL	0		 lineat:15		offset:6
+[DEBUG LAB4]: 	RP		)		 lineat:15		offset:7
+[DEBUG LAB4]: 	LC		{		 lineat:15		offset:8 
+[DEBUG LAB4]: 	INT		int		 lineat:16		offset:2
+[DEBUG LAB4]: 	ID		_testid 		 lineat:16		offset:6 		 IDaddress:0x56331792c840
+[DEBUG LAB4]: 	SEMI	;		 lineat:16		offset:6
+[DEBUG LAB4]: 	INT		int		 lineat:17		offset:2
+[DEBUG LAB4]: 	ID		_testid2 		 lineat:17		offset:6 		 IDaddress:0x56331792c890
+[DEBUG LAB4]: 	SEMI	;		 lineat:17		offset:6
+_testid1 is an undefined variable,are you sure?
+[DEBUG LAB4]: 	EQUAL	=		 lineat:18		offset:2
+_testid1 is an undefined variable,are you sure?
+[DEBUG LAB4]: 	PLUS	+		 lineat:18		offset:3
+[DEBUG LAB4]: 	DECIMAL	1		 lineat:18		offset:4
+[DEBUG LAB4]: 	SEMI	;		 lineat:18		offset:5
+[DEBUG LAB4]: 	RC		}		 lineat:19		offset:2 
+[DEBUG LAB4]: 	LC		{		 lineat:23		offset:1 
+[DEBUG LAB4]: 	INT		int		 lineat:24		offset:2
+[DEBUG LAB4]: 	ID		a 		 lineat:24		offset:6 		 IDaddress:0x56331792c8e0
+[DEBUG LAB4]: 	SEMI	;		 lineat:24		offset:6
+[DEBUG LAB4]: 	RC		}		 lineat:25		offset:2 
+[DEBUG LAB4]: 	LC		{		 lineat:26		offset:1 
+[DEBUG LAB4]: 	INT		int		 lineat:27		offset:2
+[DEBUG LAB4]: 	ID		a 		 lineat:27		offset:6 		 IDaddress:0x56331792c930
+[DEBUG LAB4]: 	SEMI	;		 lineat:27		offset:6
+[DEBUG LAB4]: 	RC		}		 lineat:28		offset:2 
+[DEBUG LAB4]: 	INT		int		 lineat:29		offset:1
+[DEBUG LAB4]: 	ID		b 		 lineat:29		offset:5 		 IDaddress:0x56331792c980
+[DEBUG LAB4]: 	SEMI	;		 lineat:29		offset:5
+[DEBUG LAB4]: 	RETURN	return		 lineat:30		offset:1
+[DEBUG LAB4]: 	DECIMAL	0		 lineat:30		offset:8
+[DEBUG LAB4]: 	SEMI	;		 lineat:30		offset:9
+[DEBUG LAB4]: 	RC		}		 lineat:31		offset:1 

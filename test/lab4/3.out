@@ -1,0 +1,37 @@
+[DEBUG LAB4]: 	INT		int		 lineat:1		offset:0
+[DEBUG LAB4]: 	ID		a 		 lineat:1		offset:4 		 IDaddress:0x558e89cdc6c0
+[DEBUG LAB4]: 	SEMI	;		 lineat:1		offset:4
+[DEBUG LAB4]: 	INT		int		 lineat:2		offset:0
+[DEBUG LAB4]: 	ID		b 		 lineat:2		offset:4 		 IDaddress:0x558e89cdc770
+[DEBUG LAB4]: 	SEMI	;		 lineat:2		offset:4
+[DEBUG LAB4]: 	INT		int		 lineat:3		offset:0
+[DEBUG LAB4]: 	MAIN	main	 lineat:3		offset:4
+[DEBUG LAB4]: 	LP		(		 lineat:3		offset:8
+[DEBUG LAB4]: 	RP		)		 lineat:3		offset:9
+[DEBUG LAB4]: 	LC		{		 lineat:4		offset:0 
+[DEBUG LAB4]: 	INT		int		 lineat:5		offset:4
+[DEBUG LAB4]: 	ID		a 		 lineat:5		offset:8 		 IDaddress:0x558e89cdc7c0
+[DEBUG LAB4]: 	SEMI	;		 lineat:5		offset:8
+[DEBUG LAB4]: 	INT		int		 lineat:6		offset:4
+[DEBUG LAB4]: 	ID		b 		 lineat:6		offset:8 		 IDaddress:0x558e89cdc810
+[DEBUG LAB4]: 	SEMI	;		 lineat:6		offset:8
+[DEBUG LAB4]: 	IF		if		 lineat:7		offset:4
+[DEBUG LAB4]: 	LP		(		 lineat:7		offset:6
+[DEBUG LAB4]: 	DECIMAL	1		 lineat:7		offset:7
+[DEBUG LAB4]: 	RP		)		 lineat:7		offset:8
+[DEBUG LAB4]: 	LC		{		 lineat:8		offset:4 
+[DEBUG LAB4]: 	ID		a 		 lineat:9		offset:8 		 IDaddress:0x558e89cdc7c0
+[DEBUG LAB4]: 	ASSIGNPLUS	+=		 lineat:9		offset:8
+[DEBUG LAB4]: 	DECIMAL	2		 lineat:9		offset:10
+[DEBUG LAB4]: 	SEMI	;		 lineat:9		offset:11
+[DEBUG LAB4]: 	INT		int		 lineat:10		offset:8
+[DEBUG LAB4]: 	ID		a 		 lineat:10		offset:12 		 IDaddress:0x558e89cdc890
+[DEBUG LAB4]: 	EQUAL	=		 lineat:10		offset:12
+[DEBUG LAB4]: 	DECIMAL	4		 lineat:10		offset:13
+[DEBUG LAB4]: 	SEMI	;		 lineat:10		offset:14
+[DEBUG LAB4]: 	RC		}		 lineat:11		offset:5 
+[DEBUG LAB4]: 	RC		}		 lineat:12		offset:1 
+[DEBUG LAB4]: 	ID		a 		 lineat:13		offset:0 		 IDaddress:0x558e89cdc6c0
+[DEBUG LAB4]: 	EQUAL	=		 lineat:13		offset:0
+[DEBUG LAB4]: 	DECIMAL	20		 lineat:13		offset:1
+[DEBUG LAB4]: 	SEMI	;		 lineat:13		offset:3

@@ -1,20 +1,30 @@
-[DEBUG LAB4]: 	INT	int
-a[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	INT	int
-main[DEBUG LAB4]: 	LPAREN	(
-[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	LBRACE	{
-[DEBUG LAB4]: 	INT	int
-a[DEBUG LAB4]: 	SEMICOLON	;
-a[DEBUG LAB4]: 	ASSIGN	=
-1[DEBUG LAB4]: 	ADD	+
-2[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	IF	if
-[DEBUG LAB4]: 	LPAREN	(
-a[DEBUG LAB4]: 	LESS	<
-5[DEBUG LAB4]: 	RPAREN	)
-[DEBUG LAB4]: 	RETURN	return
-1[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RETURN	return
-0[DEBUG LAB4]: 	SEMICOLON	;
-[DEBUG LAB4]: 	RBRACE	}
+[DEBUG LAB4]: 	INT		int		 lineat:1		offset:0
+[DEBUG LAB4]: 	ID		a 		 lineat:1		offset:4 		 IDaddress:0x55efdab806c0
+[DEBUG LAB4]: 	SEMI	;		 lineat:1		offset:4
+[DEBUG LAB4]: 	INT		int		 lineat:3		offset:0
+[DEBUG LAB4]: 	MAIN	main	 lineat:3		offset:4
+[DEBUG LAB4]: 	LP		(		 lineat:3		offset:8
+[DEBUG LAB4]: 	RP		)		 lineat:3		offset:9
+[DEBUG LAB4]: 	LC		{		 lineat:4		offset:0 
+[DEBUG LAB4]: 	INT		int		 lineat:5		offset:4
+[DEBUG LAB4]: 	ID		a 		 lineat:5		offset:8 		 IDaddress:0x55efdab80770
+[DEBUG LAB4]: 	SEMI	;		 lineat:5		offset:8
+[DEBUG LAB4]: 	ID		a 		 lineat:6		offset:4 		 IDaddress:0x55efdab80770
+[DEBUG LAB4]: 	EQUAL	=		 lineat:6		offset:5
+[DEBUG LAB4]: 	DECIMAL	1		 lineat:6		offset:7
+[DEBUG LAB4]: 	PLUS	+		 lineat:6		offset:9
+[DEBUG LAB4]: 	DECIMAL	2		 lineat:6		offset:11
+[DEBUG LAB4]: 	SEMI	;		 lineat:6		offset:12
+[DEBUG LAB4]: 	IF		if		 lineat:7		offset:4
+[DEBUG LAB4]: 	LP		(		 lineat:7		offset:6
+[DEBUG LAB4]: 	ID		a 		 lineat:7		offset:7 		 IDaddress:0x55efdab80770
+[DEBUG LAB4]: 	RELL	<		 lineat:7		offset:8
+[DEBUG LAB4]: 	DECIMAL	5		 lineat:7		offset:10
+[DEBUG LAB4]: 	RP		)		 lineat:7		offset:11
+[DEBUG LAB4]: 	RETURN	return		 lineat:8		offset:8
+[DEBUG LAB4]: 	DECIMAL	1		 lineat:8		offset:15
+[DEBUG LAB4]: 	SEMI	;		 lineat:8		offset:16
+[DEBUG LAB4]: 	RETURN	return		 lineat:9		offset:4
+[DEBUG LAB4]: 	DECIMAL	0		 lineat:9		offset:11
+[DEBUG LAB4]: 	SEMI	;		 lineat:9		offset:12
+[DEBUG LAB4]: 	RC		}		 lineat:10		offset:1 
