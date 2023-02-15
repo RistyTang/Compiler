@@ -507,6 +507,7 @@ void MachineBlock::outputBlockStore(InsIterType it, bool& first, int& offset)
     }
 }
 
+//return
 void MachineBlock::outputBlockAdd(InsIterType it)
 {
     auto dst = (*it)->getDef()[0];
@@ -514,7 +515,7 @@ void MachineBlock::outputBlockAdd(InsIterType it)
     //降低栈：dst和src1都是sp寄存器
     if (dst->isReg() && dst->getReg() == 13 && src1->isReg() && src1->getReg() == 13 && (*(it + 1))->isBX()) 
     {
-        int size = parent->AllocSpace(0);
+        int size = parent->AllocSpace(0);//会产生溢出
         if (size < -255 || size > 255) //非合法立即数
         {
             //用寄存器r1存
@@ -537,7 +538,7 @@ void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& fir
     {
         outputBlockStore(it, first, offset);
     }
-    if ((*it)->isAdd()) 
+    if ((*it)->isAdd()) //如果是return之前的恢复栈帧
     {
         outputBlockAdd(it);
     }
@@ -551,9 +552,7 @@ void MachineBlock::outputInst(InsIterType it, int& offset, int& count, bool& fir
         //这样就会把要加载的数据保存在文字池内，再用ARM的加载指令读出数据
         temp+=".LTORG\n";
         fprintf(yyout,"%s",temp.c_str());
-        //
         parent->getParent()->printGlobal();
-        //
         temp=".B"+std::to_string(label++)+":\n";
         fprintf(yyout,"%s",temp.c_str());
     }
@@ -619,6 +618,7 @@ void MachineFunction::output()
         (new BinaryMInstruction(nullptr, BinaryMInstruction::SUB, sp, sp, size)) ->output();
     }
     std::string temp;
+    //按序打印
     for (auto iter : block_list) 
     {
         iter->output();

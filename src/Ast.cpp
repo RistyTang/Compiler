@@ -688,7 +688,8 @@ void DeclStmt::genCodeParam()
     new StoreInstruction(addr, temp, bb);
 }
  
-void DeclStmt::genCode() {
+void DeclStmt::genCode() 
+{
     //获取符号表项
     IdentifierSymbolEntry* se = (IdentifierSymbolEntry*)(id->getSymPtr());
     //全局常变量
@@ -870,11 +871,8 @@ void InitValueListExpr::typeCheck() {
 }
 void FuncCallNode::typeCheck() {
 }
-void OneOpExpr::typeCheck() {
-    std::string op_str = op == OneOpExpr::NOT ? "!" : "-";
-    if (expr->getType()->isVoid()) {
-        fprintf(stderr,"一元运算符\'%s\'操作对象为void类型\n",op_str.c_str());
-    }
+void OneOpExpr::typeCheck() 
+{
 }
 
 void ExprStmt::typeCheck() {

@@ -632,6 +632,7 @@ void CondBrInstruction::genMachineCode(AsmBuilder* builder)
     s1 << ".L" << true_branch->getNo();
     MachineOperand* dst1 = new MachineOperand(s1.str());
     BranchMInstruction* cur_inst1;
+    //如果条件为真
     cur_inst1 = new BranchMInstruction(cur_block, BranchMInstruction::B, dst1, cur_block->getCmpCond());
     cur_block->InsertInst(cur_inst1);
     
@@ -1026,7 +1027,6 @@ void GepInstruction::genMachineCode(AsmBuilder* builder)
         genInit(builder);
         return;
     }
-    
     //如果是在最开始的最低维度，需要对索引的立即数进行合法性调整
     auto cur_block = builder->getBlock();
     MachineInstruction* cur_inst;

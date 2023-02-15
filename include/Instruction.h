@@ -157,7 +157,8 @@ class CondBrInstruction : public Instruction {
     BasicBlock* false_branch;
 };
 
-class RetInstruction : public Instruction {
+class RetInstruction : public Instruction 
+{
    public:
     RetInstruction(Operand* src, BasicBlock* insert_bb = nullptr);
     ~RetInstruction();
