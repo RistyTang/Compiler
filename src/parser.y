@@ -9,7 +9,8 @@
     int yyerror( char const * );
 }
 
-%code requires {
+%code requires 
+{
     //文件要求包含头文件
     #include "Ast.h"
     #include "SymbolTable.h"
@@ -387,7 +388,8 @@ PrimaryExp
         //要跳回最低优先级
         $$=$2;
     }
-    |   ID LPAREN FuncActualParams RPAREN {
+    |   ID LPAREN FuncActualParams RPAREN 
+    {
         //调用函数的优先级也属于此优先级
         //是函数表达式 调用实参
             SymbolEntry *se;
@@ -514,7 +516,8 @@ FuncDef
             //这个断言的作用是检查之前是否正确把ID放入符号表
             assert(se != nullptr);
             //如果形参不为空，则放入参数列表
-            if($5!=nullptr){
+            if($5!=nullptr)
+            {
                 //将函数参数类型写入符号表
                 //将$5（函数参数）的的Type给这个函数的各个参数
                 //(FunctionType*)(se->getType())就是上个代码的funcType

@@ -362,12 +362,13 @@ void AssignStmt::output(int level)
 
 void FunctionDef::output(int level)
 {
-   std::string name, type;
+    std::string name, type;
     name = se->toStr();
     type = se->getType()->toStr();
     fprintf(yyout, "%*cFunctionDefine function name: %s, type: %s\n", level, ' ', 
             name.c_str(), type.c_str());
-    if(params!=nullptr){
+    if(params!=nullptr)
+    {
         params->output(level+4);
     }
     else{

@@ -298,6 +298,7 @@ public:
     std::vector<Type*> getParamsType();
     void output(int level);
 };
+
 //函数定义/声明
 class FunctionDef : public StmtNode
 {
